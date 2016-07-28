@@ -12,19 +12,19 @@ module RbUtils
           t0 = Time.now
 
           @logger.info(
-            "Running method `#{method}` with [#{args_str}]"
+            "Running method `#{method}` with args [#{args_str}]"
           )
 
           result = @app.send method, *args, &block
 
           @logger.info(
-            "Finished method `#{method}` with [#{args_str}]. Took: #{time_since(t0)}ms"
+            "Finished method `#{method}` with args [#{args_str}]. Took: #{time_since(t0)}ms"
           )
 
           result
         rescue => e
           @logger.error(
-            "Finished method `#{method}` with [#{args_str}] failed: #{e.class}. Took: #{time_since(t0)}ms"
+            "Finished method `#{method}` with args [#{args_str}] failed: #{e.class}. Took: #{time_since(t0)}ms"
           )
           raise e
         end
