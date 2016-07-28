@@ -1,0 +1,1 @@
+require 'rbutils/thrift/middleware'
