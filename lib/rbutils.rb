@@ -1,5 +1,4 @@
-require "rbutils/version"
+require 'rbutils/version'
 
-module Rbutils
-  # Your code goes here...
+module RbUtils
 end

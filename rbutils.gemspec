@@ -5,7 +5,7 @@ require 'rbutils/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'rbutils'
-  spec.version       = Rbutils::VERSION
+  spec.version       = RbUtils::VERSION
   spec.authors       = ['Upfluence']
   spec.email         = ['dev@upfluence.com']
 
