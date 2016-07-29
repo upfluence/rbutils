@@ -2,14 +2,9 @@ module Upfluence
   module Utils
     module Thrift
       module ErrorLogger
-        class Opbeat
-          def initialize(client, env)
-            @client = client
-            @env = env
-          end
-
+        class OpbeatV3 < OpbeatV2
           def notify(error, method, *args)
-            @client.capture_exception(
+            @client.report(
               error,
               extra: {
                 method: method,
