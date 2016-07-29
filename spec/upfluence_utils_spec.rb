@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe RbUtils do
+describe Upfluence::Utils do
   it 'has a version number' do
-    expect(RbUtils::VERSION).not_to be nil
+    expect(Upfluence::Utils::VERSION).not_to be nil
   end
 
   it 'does something useful' do

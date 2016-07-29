@@ -1,15 +1,15 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'rbutils/version'
+require 'upfluence/utils/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'rbutils'
-  spec.version       = RbUtils::VERSION
+  spec.name          = 'upfluence-utils'
+  spec.version       = Upfluence::Utils::VERSION
   spec.authors       = ['Upfluence']
   spec.email         = ['dev@upfluence.com']
 
-  spec.summary       = 'Upfluence comon utils for Ruby projects'
+  spec.summary       = 'Upfluence common utils for Ruby projects'
   spec.homepage      = 'https://github.com/upfluence/rbutils'
   spec.license       = 'MIT'
 
