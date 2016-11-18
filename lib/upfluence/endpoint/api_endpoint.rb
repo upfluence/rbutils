@@ -42,7 +42,7 @@ module Upfluence
 
       def json_params
         begin
-          JSON.parse(request.body.read)
+          JSON.parse(request.body.read).with_indifferent_access
         rescue
           halt 400, { message: 'Invalid JSON' }.to_json
         end
