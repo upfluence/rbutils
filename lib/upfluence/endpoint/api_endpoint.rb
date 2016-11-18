@@ -1,8 +1,9 @@
 module Upfluence
   module Endpoint
-    class ApiEndpoint < Sinatra::Base
-      class BadRequest < StandardError; end
 
+    class BadRequest < StandardError; end
+
+    class ApiEndpoint < Sinatra::Base
       disable :show_exceptions
 
       configure :development do
