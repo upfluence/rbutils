@@ -38,18 +38,18 @@ module Upfluence
           end
           halt [status, result] || 404
         end
-      end
 
-      def json_params
-        begin
-          ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request.body.read))
-        rescue
-          halt 400, { message: 'Invalid JSON' }.to_json
+        def json_params
+          begin
+            ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request.body.read))
+          rescue
+            halt 400, { message: 'Invalid JSON' }.to_json
+          end
         end
-      end
 
-      def render_errors(model)
-        render json: { errors: model.errors }, status: :unprocessable_entity
+        def render_errors(model)
+          render json: { errors: model.errors }, status: :unprocessable_entity
+        end
       end
     end
   end
