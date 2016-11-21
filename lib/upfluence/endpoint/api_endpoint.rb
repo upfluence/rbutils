@@ -52,5 +52,10 @@ module Upfluence
         end
       end
     end
+
+    Sinatra::Base.error BadRequest do
+      status 400
+      { error: 'Bad request' }.to_json
+    end
   end
 end
