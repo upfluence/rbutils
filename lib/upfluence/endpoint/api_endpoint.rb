@@ -48,10 +48,6 @@ module Upfluence
             halt 400, { message: 'Invalid JSON' }.to_json
           end
         end
-
-        def render_errors(model)
-          render json: { errors: model.errors }, status: 422
-        end
       end
     end
 
