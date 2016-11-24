@@ -50,7 +50,7 @@ module Upfluence
         end
 
         def render_errors(model)
-          render json: { errors: model.errors }, status: :unprocessable_entity
+          render json: { errors: model.errors }, status: 422
         end
       end
     end
