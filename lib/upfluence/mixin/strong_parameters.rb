@@ -251,5 +251,17 @@ module Mixin
     def params=(val)
       @_params = val.is_a?(Hash) ? Parameters.new(val) : val
     end
+
+    def json_params
+      begin
+        @_json_params ||= Parameters.new(super)
+      rescue
+        raise "You must extend Upfluence::Endpoint::ApiEndpoint to use json_params"
+      end
+    end
+
+    def json_params=(val)
+      @_json_params = val.is_a?(Hash) ? Parameters.new(val) : val
+    end
   end
 end
