@@ -17,9 +17,8 @@ module Upfluence
 
       helpers do
         def ok
-          status 200
           content_type :json
-          { status: 'OK' }.to_json
+          [200 , { status: 'OK' }.to_json]
         end
 
         def respond_with(resource, *args)
@@ -30,7 +29,7 @@ module Upfluence
             status = 200
             result = if resource.is_a? Enumerable
                        ActiveModel::ArraySerializer.new(
-                           resource, *args
+                         resource, *args
                        ).to_json
                      elsif resource.respond_to?(:serialize)
                        resource.serialize.to_json
@@ -38,15 +37,20 @@ module Upfluence
                        ActiveModel::Serializer.serializer_for(resource).new(resource).to_json
                      end
           end
-          halt [status, result] || 404
+
+          halt [status, result]
         end
 
         def json_params
           begin
-            ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request.body.read))
-          rescue
-            halt 400, { message: 'Invalid JSON' }.to_json
+            ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request_body))
+          rescue JSON::ParserError
+            halt [400, { message: 'Invalid JSON' }.to_json]
           end
+        end
+
+        def request_body
+          @request_body ||= request.body.read
         end
       end
     end
