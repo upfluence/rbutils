@@ -34,7 +34,7 @@ module Upfluence
                      elsif resource.respond_to?(:serialize)
                        resource.serialize.to_json
                      else
-                       ActiveModel::Serializer.serializer_for(resource).new(resource).to_json
+                       ActiveModel::Serializer.serializer_for(resource).new(resource, *args).to_json
                      end
           end
 
