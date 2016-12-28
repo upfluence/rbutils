@@ -32,7 +32,7 @@ module Upfluence
                          resource, *args
                        ).to_json
                      elsif resource.respond_to?(:serialize)
-                       resource.serialize.to_json
+                       resource.serialize(*args).to_json
                      else
                        ActiveModel::Serializer.serializer_for(resource).new(resource, *args).to_json
                      end
