@@ -1,3 +1,5 @@
+require 'sinatra'
+
 module Upfluence
   module Endpoint
 
