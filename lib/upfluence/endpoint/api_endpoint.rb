@@ -2,9 +2,7 @@ require 'sinatra'
 
 module Upfluence
   module Endpoint
-
     class BadRequest < StandardError; end
-
     class ApiEndpoint < Sinatra::Base
       disable :show_exceptions
 
