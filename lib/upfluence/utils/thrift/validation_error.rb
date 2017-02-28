@@ -1,6 +1,8 @@
+require 'thrift/exceptions'
+
 module Base
   module Exceptions
-    class ValidationError
+    class ValidationError < ::Thrift::Exception
       class << self
         attr_accessor :domain
 
