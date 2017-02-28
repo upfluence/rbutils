@@ -18,7 +18,7 @@ module Base
            end
          end
 
-         self.new(validations: validation_errors)
+         new(validations: validation_errors)
         end
       end
     end
