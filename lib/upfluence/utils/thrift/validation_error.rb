@@ -1,4 +1,4 @@
-module Baes
+module Base
   module Exceptions
     class ValidationError
       class << self
