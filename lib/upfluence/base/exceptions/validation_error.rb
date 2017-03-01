@@ -26,9 +26,9 @@ module Base
       def to_json
         {
           validations.first.model => {
-            errors: validations.group_by do |validation|
-              validation.field
-            end.reduce({}) do |acc, (field, validation_errors)|
+            errors: validations.group_by(
+              &:field
+            ).reduce({}) do |acc, (field, validation_errors)|
               acc.merge(field => validation_errors.map(&:error))
             end
           }
