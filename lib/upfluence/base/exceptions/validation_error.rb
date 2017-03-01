@@ -1,4 +1,5 @@
 require 'thrift/exceptions'
+require 'base/exceptions/exceptions_types'
 
 module Base
   module Exceptions
