@@ -24,7 +24,9 @@ module Upfluence
         def respond_with(resource, *args)
           if resource.respond_to?(:errors) && resource.errors.any?
             status = 422
-            result = { errors: resource.errors }.to_json
+            result = Base::Exceptions::ValidationError.from_model(
+              resource
+            ).to_json
           else
             status = 200
             result = if resource.is_a? Enumerable

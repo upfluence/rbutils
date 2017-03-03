@@ -22,6 +22,16 @@ module Base
           new(validations: validation_errors)
         end
       end
+
+      def to_json
+        {
+          errors: validations.reduce([]) do |acc, v|
+            acc << {
+              'resource' => v.model, 'field' => v.field, 'code' => v.error
+            }
+          end
+        }.to_json
+      end
     end
   end
 end
