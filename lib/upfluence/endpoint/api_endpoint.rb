@@ -18,7 +18,19 @@ module Upfluence
       helpers do
         def ok
           content_type :json
-          [200 , { status: 'OK' }.to_json]
+          [200, { status: 'OK' }.to_json]
+        end
+
+        def access_token
+          token = params[:access_token]
+
+          unless access_token
+            pattern      = /^Bearer /
+            header       = request.env['HTTP_AUTHORIZATION']
+            token = header.gsub(pattern, '') if header && header.match(pattern)
+          end
+
+          token
         end
 
         def respond_with(resource, *args)
@@ -44,11 +56,7 @@ module Upfluence
         end
 
         def json_params
-          begin
-            ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request_body))
-          rescue JSON::ParserError
-            halt [400, { message: 'Invalid JSON' }.to_json]
-          end
+          ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request_body))
         end
 
         def request_body
@@ -60,6 +68,11 @@ module Upfluence
     Sinatra::Base.error BadRequest do
       status 400
       { error: 'Bad request' }.to_json
+    end
+
+    Sinatra::Base.error JSON::ParserError do
+      status 400
+      { message: 'Invalid JSON' }.to_json
     end
   end
 end
