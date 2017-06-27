@@ -1,9 +1,11 @@
 require 'active_support/string_inquirer'
 
 module Upfluence
-  def env
-    @env ||= ActiveSupport::StringInquirer.new(
-      ENV.fetch('ENV', 'development')
-    )
+  class << self
+    def env
+      @env ||= ActiveSupport::StringInquirer.new(
+        ENV['ENV'] || ENV['RACK_ENV'] || 'development'
+      )
+    end
   end
 end

@@ -9,8 +9,10 @@ module Upfluence
         class << self
           def setup(handler, timeout = 30)
             ErrorCatcher.new(
-              Timeout.new(RequestLogger.new(handler, logger), timeout),
-              error_logger
+              Timeout.new(
+                RequestLogger.new(handler, Upfluence.logger), timeout
+              ),
+              Upfluence.error_logger
             )
           end
         end
