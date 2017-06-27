@@ -7,15 +7,9 @@ module Upfluence
     module Thrift
       module Middleware
         class << self
-          def setup(handler, logger, error_logger, timeout)
+          def setup(handler, timeout = 30)
             ErrorCatcher.new(
-              Timeout.new(
-                RequestLogger.new(
-                  handler,
-                  logger
-                ),
-                timeout
-              ),
+              Timeout.new(RequestLogger.new(handler, logger), timeout),
               error_logger
             )
           end
