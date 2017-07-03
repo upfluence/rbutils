@@ -25,10 +25,8 @@ module Base
 
       def to_json
         {
-          errors: validations.reduce([]) do |acc, v|
-            acc << {
-              'resource' => v.model, 'field' => v.field, 'code' => v.error
-            }
+          errors: validations.map do |v|
+            { resource: v.model, field: v.field, code: v.error }
           end
         }.to_json
       end

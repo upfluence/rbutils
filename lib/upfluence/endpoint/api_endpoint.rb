@@ -24,7 +24,7 @@ module Upfluence
         def access_token
           token = params[:access_token]
 
-          unless access_token
+          unless token
             pattern      = /^Bearer /
             header       = request.env['HTTP_AUTHORIZATION']
             token = header.gsub(pattern, '') if header && header.match(pattern)
