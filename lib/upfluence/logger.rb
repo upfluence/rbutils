@@ -4,7 +4,7 @@ module Upfluence
   class Logger < Logger
     class Formatter < Logger::Formatter
       TIME_FORMAT = '%y%m%d %H:%M:%S'.freeze
-      LOG_FORMAT = '[%s %s %s] %s'.freeze
+      LOG_FORMAT = "[%s %s %s] %s\n".freeze
 
       def initialize(extra = 0)
         @extra = extra
