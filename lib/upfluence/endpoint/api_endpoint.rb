@@ -58,10 +58,6 @@ module Upfluence
         def json_params
           ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request_body))
         end
-
-        def request_body
-          @request_body ||= request.body.read
-        end
       end
     end
 
@@ -73,6 +69,10 @@ module Upfluence
     Sinatra::Base.error JSON::ParserError do
       status 400
       { message: 'Invalid JSON' }.to_json
+    end
+
+    def request_body
+      @request_body ||= request.body.read
     end
   end
 end

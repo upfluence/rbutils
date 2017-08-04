@@ -8,6 +8,13 @@ module Upfluence
 
         def call(env)
           @app.call(env)
+        rescue => e
+          Upfluence.logger.error("Error: #{e.class}: #{e.message}")
+          e.backtrace.each do |b|
+            Upfluence.logger.error("\t#{b}")
+          end
+
+          raise e
         end
       end
 
