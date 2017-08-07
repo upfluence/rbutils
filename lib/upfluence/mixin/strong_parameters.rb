@@ -254,11 +254,7 @@ module Upfluence
       end
 
       def json_params
-        begin
-          @_json_params ||= Parameters.new(super)
-        rescue
-          raise "You must extend Upfluence::Endpoint::ApiEndpoint to use json_params"
-        end
+        @_json_params ||= Parameters.new(super)
       end
 
       def json_params=(val)
