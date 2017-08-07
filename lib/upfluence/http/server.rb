@@ -1,10 +1,14 @@
 require 'rack/handler'
+require 'rack/etag'
 
-require 'upfluence/env'
+require 'upfluence/environment'
 require 'upfluence/error_logger'
 
 require 'upfluence/http/builder'
 require 'upfluence/http/endpoint/healthcheck'
+require 'upfluence/http/middleware/logger'
+require 'upfluence/http/middleware/application_headers'
+require 'upfluence/http/middleware/handle_exception'
 require 'upfluence/handler/base'
 
 module Upfluence
@@ -18,40 +22,39 @@ module Upfluence
         interfaces: []
       }.freeze
 
-      def new(options = {}, &block)
+      def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
+        opts = @options
+        base_handler = Handler::Base.new(opts[:interfaces])
+
         @builder = Builder.new do
-          use Rack::CommonLogger, Upfluence.logger
+          use Middleware::Logger
+          use Middleware::ApplicationHeaders, base_handler
+          use Middleware::HandleException
           use Upfluence.error_logger.middleware
           use Rack::ContentLength
           use Rack::Chunked
-
-          if Upfluence.env.development?
-            use Rack::ShowExceptions
-            use Rack::Lint
-          end
-
+          use Rack::Lint if Upfluence.env.development?
           use Rack::TempfileReaper
-          use Rack::Etag
+          use Rack::ETag
 
-          map('/healthcheck') { run Endpoint::Healthcheck }
-          map '/base' do
-            run_thrift(
-              Base::BaseService::Processor,
-              Handler::Base.new(@options[:interfaces])
-            )
+          map '/healthcheck'  do
+            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
           end
 
-          block.call
+          map '/base' do
+            run_thrift Base::BaseService::Processor, base_handler
+          end
+
+          instance_eval(&block)
         end
 
         @handler = Rack::Handler.get(@options[:server])
 
         if @options[:server] == :thin
-          require 'thin/logger'
+          require 'thin/logging'
 
-          Thin::Logging.trace_logger = Upfluence.logger
-          Thin::Logging.logger = Upfluence.logger
+          Thin::Logging.silent = true
         end
       end
 

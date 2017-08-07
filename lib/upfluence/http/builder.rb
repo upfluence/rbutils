@@ -4,7 +4,7 @@ require 'upfluence/utils'
 
 module Upfluence
   module HTTP
-    class Builder
+    class Builder < Rack::Builder
       def run_thrift(processor, handler, timeout = 30)
         run Thrift::RackApplication.for(
           '/',
