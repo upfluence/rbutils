@@ -26,5 +26,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'sentry-raven'
   spec.add_runtime_dependency 'sinatra-contrib'
   spec.add_runtime_dependency 'activesupport'
+  spec.add_runtime_dependency 'thin'
+  spec.add_runtime_dependency 'rack'
   spec.add_runtime_dependency 'active_model_serializers', '~> 0.9.0'
 end
