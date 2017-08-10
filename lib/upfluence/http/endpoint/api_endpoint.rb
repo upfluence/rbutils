@@ -7,6 +7,9 @@ module Upfluence
       class APIEndpoint < Sinatra::Base
         disable :show_exceptions
         disable :logging
+        disable :dump_errors
+
+        enable :raise_errors
 
         configure :development do
           require 'sinatra/reloader'
