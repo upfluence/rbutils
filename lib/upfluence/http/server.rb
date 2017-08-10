@@ -15,7 +15,7 @@ module Upfluence
   module HTTP
     class Server
       DEFAULT_OPTIONS = {
-        server: :thin,
+        server: :puma,
         Port: ENV['PORT'] || 8080,
         Host: '0.0.0.0',
         threaded: true,
@@ -50,12 +50,6 @@ module Upfluence
         end
 
         @handler = Rack::Handler.get(@options[:server])
-
-        if @options[:server] == :thin
-          require 'thin/logging'
-
-          Thin::Logging.silent = true
-        end
       end
 
       def serve
