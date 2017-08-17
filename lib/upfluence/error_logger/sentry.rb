@@ -11,7 +11,7 @@ module Upfluence
           config.current_environment = Upfluence.env
           config.excluded_exceptions = EXCLUDED_ERRORS
           config.logger = Upfluence.logger
-          config.release = ENV['SEMVER_VERSION']
+          config.release = "#{ENV['PROJECT_NAME']}-#{ENV['SEMVER_VERSION']}"
           config.server_name = ENV['UNIT_NAME']
         end
       end
