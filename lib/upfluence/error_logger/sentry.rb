@@ -13,9 +13,9 @@ module Upfluence
           config.logger = Upfluence.logger
           config.release = "#{ENV['PROJECT_NAME']}-#{ENV['SEMVER_VERSION']}"
           config.tags = {
-            unit_name: ENV['UNIT_NAME'],
-            unit_type: ENV['UNIT_NAME'].split('@').first
-          }
+            unit_name: unit_name,
+            unit_type: unit_type
+          }.select { |_, v| !v.nil? }
         end
       end
 
@@ -29,6 +29,16 @@ module Upfluence
 
       def middleware
         ::Raven::Rack
+      end
+
+      private
+
+      def unit_name
+        ENV['UNIT_NAME'].split('.').first if ENV['UNIT_NAME']
+      end
+
+      def unit_type
+        unit_type.split('@').first if unit_name
       end
     end
   end
