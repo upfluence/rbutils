@@ -12,14 +12,18 @@ module Upfluence
           config.excluded_exceptions = EXCLUDED_ERRORS
           config.logger = Upfluence.logger
           config.release = "#{ENV['PROJECT_NAME']}-#{ENV['SEMVER_VERSION']}"
-          config.server_name = ENV['UNIT_NAME']
+          config.tags = {
+            unit_name: ENV['UNIT_NAME'],
+            unit_type: ENV['UNIT_NAME'].split('@').first
+          }
         end
       end
 
       def notify(error, method, *args)
         Raven.capture_exception(
           error,
-          extra: { method: method, arguments: args, environment: @env }
+          extra: { method: method, arguments: args },
+          tags: { method: method }
         )
       end
 
