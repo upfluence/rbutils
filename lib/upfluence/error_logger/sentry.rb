@@ -38,7 +38,7 @@ module Upfluence
       end
 
       def unit_type
-        unit_type.split('@').first if unit_name
+        unit_name.split('@').first if unit_name
       end
     end
   end
