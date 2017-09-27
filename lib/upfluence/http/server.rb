@@ -1,4 +1,5 @@
 require 'rack/handler'
+require 'rack/deflater'
 require 'rack/etag'
 
 require 'upfluence/environment'
@@ -37,6 +38,7 @@ module Upfluence
           use Rack::Lint if Upfluence.env.development?
           use Rack::TempfileReaper
           use Rack::ETag
+          use Rack::Deflater
 
           map '/healthcheck'  do
             run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
