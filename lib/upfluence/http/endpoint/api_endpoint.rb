@@ -11,6 +11,8 @@ module Upfluence
 
         enable :raise_errors
 
+        before { content_type :json }
+
         configure :development do
           require 'sinatra/reloader'
           register Sinatra::Reloader
@@ -22,7 +24,6 @@ module Upfluence
 
         helpers do
           def ok
-            content_type :json
             [200, { status: 'OK' }.to_json]
           end
 
