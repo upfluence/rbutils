@@ -22,6 +22,8 @@ module Upfluence
         Upfluence.logger.error(error.inspect)
       end
 
+      def user=(_user); end
+
       def middleware
         Middleware
       end

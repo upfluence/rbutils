@@ -27,6 +27,10 @@ module Upfluence
         )
       end
 
+      def user=(user)
+        Raven.user_context(id: user.id, email: user.email)
+      end
+
       def middleware
         ::Raven::Rack
       end
