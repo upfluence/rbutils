@@ -43,7 +43,7 @@ module Upfluence
           end
 
           map '/base' do
-            run_thrift Base::BaseService::Processor, base_handler
+            run_thrift Base::Base_service::BaseService::Processor, base_handler
           end
 
           instance_eval(&block)

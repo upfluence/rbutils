@@ -1,4 +1,4 @@
-require 'base/base_service'
+require 'base/base_service/base_service'
 require 'base/version/version_types'
 require 'base/version'
 
