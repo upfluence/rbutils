@@ -41,7 +41,7 @@ module Upfluence
       end
 
       def getStatus
-        ::Base::Status::ALIVE
+        ::Base::Base_service::Status::ALIVE
       end
 
       def aliveSince
