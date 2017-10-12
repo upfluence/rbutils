@@ -12,9 +12,9 @@ module Upfluence
 
           def method_missing(method, *args, &block)
             @app.send(method, *args, &block)
-          rescue ActiveRecord::RecordInvalid => e
+          rescue ::ActiveRecord::RecordInvalid => e
             raise Base::Exceptions::ValidationError.from_model(e.record)
-          rescue ActiveRecord::RecordNotFound
+          rescue ::ActiveRecord::RecordNotFound
             raise Base::Exceptions::NotFound
           end
         end
