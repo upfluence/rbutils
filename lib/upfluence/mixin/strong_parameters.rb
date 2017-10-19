@@ -193,6 +193,11 @@ module Upfluence
             if filter[key] == []
               # Declaration {:comment_ids => []}.
               array_of_permitted_scalars_filter(params, key)
+            elsif filter[key] == {}
+              # Declaration { preferences: {} }
+              if value.is_a?(Parameters)
+                params[key] = permit_any_in_parameters(value)
+              end
             else
               # Declaration {:user => :name} or {:user => [:name, :age, {:adress => ...}]}.
               params[key] = each_element(value) do |element, index|
@@ -242,6 +247,36 @@ module Upfluence
 
         def unpermitted_keys(params)
           self.keys - params.keys - NEVER_UNPERMITTED_PARAMS
+        end
+
+        def permit_any_in_parameters(params)
+          self.class.new.tap do |sanitized|
+            params.each do |key, value|
+              if permitted_scalar?(value)
+                sanitized[key] = value
+              elsif value.is_a?(Array)
+                sanitized[key] = permit_any_in_array(value)
+              elsif value.is_a?(Parameters)
+                sanitized[key] = permit_any_in_parameters(value)
+              else
+                # Filter this one out.
+              end
+            end
+          end
+        end
+
+        def permit_any_in_array(array)
+          [].tap do |sanitized|
+            array.each do |element|
+              if permitted_scalar?(element)
+                sanitized << element
+              elsif element.is_a?(Parameters)
+                sanitized << permit_any_in_parameters(element)
+              else
+                # Filter this one out.
+              end
+            end
+          end
         end
       end
 
