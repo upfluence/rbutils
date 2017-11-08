@@ -20,11 +20,15 @@ module Upfluence
       end
 
       def notify(error, method, *args)
-        Raven.capture_exception(
-          error,
-          extra: { method: method, arguments: args },
-          tags: { method: method }
-        )
+        begin
+          Raven.capture_exception(
+            error,
+            extra: { method: method, arguments: args },
+            tags: { method: method }
+          )
+        rescue Raven::Error => e
+          Upfluence.logger.error e.message
+        end
       end
 
       def user=(user)
