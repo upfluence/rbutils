@@ -1,5 +1,7 @@
 require 'rack/handler'
 require 'rack/etag'
+require 'prometheus/client'
+require 'prometheus/client/push'
 
 require 'upfluence/environment'
 require 'upfluence/error_logger'
@@ -9,6 +11,7 @@ require 'upfluence/http/endpoint/healthcheck'
 require 'upfluence/http/middleware/logger'
 require 'upfluence/http/middleware/application_headers'
 require 'upfluence/http/middleware/handle_exception'
+require 'upfluence/http/middleware/prometheus'
 require 'upfluence/handler/base'
 
 module Upfluence
@@ -19,7 +22,11 @@ module Upfluence
         Port: ENV['PORT'] || 8080,
         Host: '0.0.0.0',
         threaded: true,
-        interfaces: []
+        interfaces: [],
+        push_gateway_url: ENV['PUSH_GATEWAY_URL'],
+        push_gateway_interval: 15, # sec
+        app_name: ENV['APP_NAME'] || 'uhttp-rb-server',
+        unit_name: ENV['UNIT_NAME'] || 'uhttp-rb-server-anonymous'
       }.freeze
 
       def initialize(options = {}, &block)
@@ -29,6 +36,7 @@ module Upfluence
 
         @builder = Builder.new do
           use Middleware::Logger
+          use Middleware::Prometheus
           use Middleware::ApplicationHeaders, base_handler
           use Middleware::HandleException
           use Upfluence.error_logger.middleware
@@ -54,6 +62,9 @@ module Upfluence
 
       def serve
         ENV['RACK_ENV'] = Upfluence.env.to_s
+
+        Thread.new { run_prometheus_exporter } if @options[:push_gateway_url]
+
         @handler.run(@builder, @options) do |server|
           server.threaded = @options[:threaded] if server.respond_to? :threaded=
 
@@ -61,6 +72,24 @@ module Upfluence
             server.threadpool_size = @options[:threadpool_size]
           end
         end
+      end
+
+      private
+
+      def run_prometheus_exporter
+        push = Prometheus::Client::Push.new(
+          @options[:app_name],
+          @options[:unit_name],
+          @options[:push_gateway_url]
+        )
+
+        loop do
+          sleep @options[:push_gateway_interval]
+
+          push.replace Prometheus::Client.registry
+        end
+      rescue => e
+        puts e
       end
     end
   end
