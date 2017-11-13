@@ -1,4 +1,5 @@
 require 'prometheus/client'
+require 'upfluence/environment'
 
 module Upfluence
   module HTTP
@@ -42,11 +43,16 @@ module Upfluence
           @request_total_count.increment(
             path: parse_route(env),
             method: env['REQUEST_METHOD'].downcase,
-            status: code
+            status: code,
+            env: Upfluence.env.to_s
           )
 
           @request_histogram.observe(
-            { path: parse_route(env), method: env['REQUEST_METHOD'].downcase },
+            {
+              path: parse_route(env),
+              method: env['REQUEST_METHOD'].downcase,
+              env: Upfluence.env.to_s
+            },
             duration
           )
         end
@@ -57,10 +63,10 @@ module Upfluence
         end
 
         def parse_route_rails(env)
-          params = env["action_dispatch.request.parameters"]
+          params = env['action_dispatch.request.parameters']
           return nil if params.nil?
 
-          "#{params["controller"]}##{params["action"]}"
+          "#{params['controller']}##{params['action']}"
         end
 
         def parse_route_sinatra(env)
