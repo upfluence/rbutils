@@ -23,7 +23,7 @@ module Upfluence
         begin
           Raven.capture_exception(
             error,
-            extra: { method: method, arguments: args },
+            extra: { method: method, arguments: args.map(&:inspect) },
             tags: { method: method }
           )
         rescue Raven::Error => e
