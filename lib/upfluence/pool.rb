@@ -43,13 +43,9 @@ module Upfluence
 
       @mutex.synchronize do
         loop do
-          unless @que.empty?
-            object = @que.pop
-            @redeemed << object
-            object
-          end
+          return redeem(@que.pop) unless @que.empty?
 
-          connection = try_create(options)
+          connection = redeem(try_create(options))
           return connection if connection
 
           to_wait = deadline - Time.now
@@ -77,12 +73,15 @@ module Upfluence
       @redeemed.reject! { |e| e.object_id == obj.object_id }
     end
 
-    def try_create(_options = nil)
-      ureturn if  @redeemed.length >= @max
+    def redeem(obj)
+      @redeemed << obj if obj
+      obj
+    end
 
-      object = @create_block.call
-      @redeemed << object
-      object
+    def try_create(_options = nil)
+      return if @redeemed.length >= @max
+
+      @create_block.call
     end
   end
 end
