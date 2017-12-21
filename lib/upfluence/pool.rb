@@ -23,18 +23,15 @@ module Upfluence
 
     def discard(obj)
       @mutex.synchronize do
-        raise UnknownResource unless @redeemed.include? obj
-
-        @redeemed.reject! { |e| e == obj }
+        remove_from_redeemed obj
         @resource.broadcast
       end
     end
 
     def push(obj)
       @mutex.synchronize do
-        raise UnknownResource unless @redeemed.include? obj
+        remove_from_redeemed obj
 
-        @redeemed.reject! { |e| e == obj }
         @que.push obj
         @resource.broadcast
       end
@@ -46,7 +43,11 @@ module Upfluence
 
       @mutex.synchronize do
         loop do
-          return @que.pop unless @que.empty?
+          unless @que.empty?
+            object = @que.pop
+            @redeemed << object
+            object
+          end
 
           connection = try_create(options)
           return connection if connection
@@ -68,12 +69,20 @@ module Upfluence
 
     private
 
-    def try_create(_options = nil)
-      unless @redeemed.length >= @max
-        object = @create_block.call
-        @redeemed << object
-        object
+    def remove_from_redeemed(obj)
+      unless @redeemed.map(&:object_id).include? obj.object_id
+        raise UnknownResource
       end
+
+      @redeemed.reject! { |e| e.object_id == obj.object_id }
+    end
+
+    def try_create(_options = nil)
+      ureturn if  @redeemed.length >= @max
+
+      object = @create_block.call
+      @redeemed << object
+      object
     end
   end
 end
