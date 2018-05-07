@@ -8,6 +8,7 @@ require 'upfluence/error_logger'
 
 require 'upfluence/http/builder'
 require 'upfluence/http/endpoint/healthcheck'
+require 'upfluence/http/endpoint/profiler'
 require 'upfluence/http/middleware/logger'
 require 'upfluence/http/middleware/application_headers'
 require 'upfluence/http/middleware/handle_exception'
@@ -26,7 +27,8 @@ module Upfluence
         push_gateway_url: ENV['PUSH_GATEWAY_URL'],
         push_gateway_interval: 15, # sec
         app_name: ENV['APP_NAME'] || 'uhttp-rb-server',
-        unit_name: ENV['UNIT_NAME'] || 'uhttp-rb-server-anonymous'
+        unit_name: ENV['UNIT_NAME'] || 'uhttp-rb-server-anonymous',
+        debug: ENV['DEBUG']
       }.freeze
 
       def initialize(options = {}, &block)
@@ -53,6 +55,10 @@ module Upfluence
           map '/base' do
             run_thrift Base::Base_service::BaseService::Processor, base_handler
           end
+
+          map '/debug' do
+            run Endpoint::Profiler.new
+          end if opts[:debug]
 
           instance_eval(&block)
         end
