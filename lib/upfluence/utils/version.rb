@@ -1,5 +1,5 @@
 module Upfluence
   module Utils
-    VERSION = '0.5.3'.freeze
+    VERSION = '0.5.4'.freeze
   end
 end
