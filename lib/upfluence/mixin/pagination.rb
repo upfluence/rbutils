@@ -39,7 +39,8 @@ module Upfluence
           args.merge(
             meta: {
               total: paginated_total,
-              total_pages: (paginated_total.to_f / per_page.to_f).ceil
+              total_pages: (paginated_total.to_f / per_page.to_f).ceil,
+              per_page: per_page
             }
           ) { |_, x, y| x.merge(y) }
         )
