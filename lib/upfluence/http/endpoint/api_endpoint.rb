@@ -47,10 +47,12 @@ module Upfluence
               ).to_json
             else
               status = 200
+              opts = args.first || {}
+
               result = if resource.is_a? Enumerable
-                         ActiveModel::ArraySerializer.new(
-                           resource, *args
-                         ).to_json
+                         ActiveModel::ArraySerializer.new(resource, *args).to_json
+                       elsif opts[:serializer]
+                         opts[:serializer].new(resource, *args).to_json
                        elsif resource.respond_to?(:serialize)
                          resource.serialize(*args).to_json
                        else
