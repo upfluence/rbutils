@@ -13,6 +13,7 @@ require 'upfluence/http/middleware/logger'
 require 'upfluence/http/middleware/application_headers'
 require 'upfluence/http/middleware/handle_exception'
 require 'upfluence/http/middleware/prometheus'
+require 'upfluence/http/middleware/cors'
 require 'upfluence/handler/base'
 
 module Upfluence
@@ -47,6 +48,7 @@ module Upfluence
           use Rack::Lint if Upfluence.env.development?
           use Rack::TempfileReaper
           use Rack::ETag
+          use Middleware::CORS if Upfluence.env.development?
 
           map '/healthcheck'  do
             run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
