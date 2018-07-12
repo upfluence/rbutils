@@ -4,7 +4,7 @@ module Upfluence
       class CORS
         HEADERS = {
           'Access-Control-Allow-Origin' => '*',
-          'Access-Control-Allow-Headers' => 'Authorization, Content-Type, Scope',
+          'Access-Control-Allow-Headers' => 'Authorization, Content-Type, Scope, X-Upfluence-Plugin-Version',
           'Access-Control-Allow-Methods' => 'GET, POST, PUT, OPTIONS, DELETE'
         }.freeze
 
