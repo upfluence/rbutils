@@ -3,7 +3,7 @@ require 'raven'
 module Upfluence
   module ErrorLogger
     class Sentry
-      EXCLUDED_ERRORS = (Raven::Configuration::IGNORE_DEFAULT + ['Identity::Thrift::Forbidden']).freeze
+      EXCLUDED_ERRORS = (Raven::Configuration::IGNORE_DEFAULT + ['Identity::Thrift::Forbidden'])
 
       def initialize
         ::Raven.configure do |config|
@@ -37,6 +37,20 @@ module Upfluence
 
       def middleware
         ::Raven::Rack
+      end
+
+      def ignore_exception(*klss)
+        klss.each do |kls|
+          puts kls
+          case kls.class
+          when Class
+            Raven.configuration.excluded_exceptions << kls.name
+          when String
+            Raven.configuration.excluded_exceptions << kls
+          else
+            Upfluence.logger.warn e.message
+          end
+        end
       end
 
       private
