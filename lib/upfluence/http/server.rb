@@ -50,7 +50,7 @@ module Upfluence
           use Rack::ETag
           use Middleware::CORS if Upfluence.env.development?
 
-          map '/healthcheck'  do
+          map '/healthcheck' do
             run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
           end
 
@@ -94,10 +94,12 @@ module Upfluence
         loop do
           sleep @options[:push_gateway_interval]
 
-          push.replace Prometheus::Client.registry
+          begin
+            push.replace Prometheus::Client.registry
+          rescue => e
+            Upfluence.error_logger.notify(e)
+          end
         end
-      rescue => e
-        puts e
       end
     end
   end
