@@ -1,5 +1,6 @@
 require 'upfluence/utils/version'
 require 'upfluence/utils/thrift'
+require 'upfluence/utils/semaphore'
 require 'upfluence/logger'
 require 'upfluence/error_logger'
 require 'upfluence/environment'
