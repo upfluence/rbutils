@@ -84,6 +84,10 @@ module Upfluence
       Sinatra::Base.not_found do
         [404, {}, { error: 'not_found' }.to_json]
       end
+
+      Sinatra::Base.error ActiveRecord::RecordInvalid do |e|
+        [422, Base::Exceptions::ValidationError.from_model(e.record).to_json]
+      end
     end
   end
 end
