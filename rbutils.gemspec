@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'puma'
   spec.add_runtime_dependency 'rack'
   spec.add_runtime_dependency 'stackprof'
-  spec.add_runtime_dependency 'prometheus-client', '~> 0.9.0'
+  spec.add_runtime_dependency 'prometheus-client', '~> 2.1'
   spec.add_runtime_dependency 'userializer'
   spec.add_runtime_dependency 'activerecord'
 end

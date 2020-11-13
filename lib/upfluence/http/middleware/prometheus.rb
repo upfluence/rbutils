@@ -5,6 +5,8 @@ module Upfluence
   module HTTP
     module Middleware
       class Prometheus
+        LABELS = %i[path method env].freeze
+
         def initialize(app, registry = ::Prometheus::Client.registry)
           @registry = registry
 
@@ -12,14 +14,16 @@ module Upfluence
             :uhttp_handler_requests_total
           ) || @registry.counter(
             :uhttp_handler_requests_total,
-            'Histogram of processed items',
+            docstring: 'Histogram of processed items',
+            labels:    LABELS + %i[status]
           )
 
           @request_histogram = @registry.get(
             :uhttp_handler_requests_duration_second
           ) || @registry.histogram(
             :uhttp_handler_requests_duration_second,
-            'Histogram of processing time',
+            docstring: 'Histogram of processing time',
+            labels:    LABELS
           )
 
           @app = app
@@ -41,19 +45,21 @@ module Upfluence
 
         def record(env, code, duration)
           @request_total_count.increment(
-            path: parse_route(env),
-            method: env['REQUEST_METHOD'].downcase,
-            status: code,
-            env: Upfluence.env.to_s
+            labels: {
+              path:   parse_route(env),
+              method: env['REQUEST_METHOD'].downcase,
+              status: code,
+              env:    Upfluence.env.to_s
+            }
           )
 
           @request_histogram.observe(
-            {
-              path: parse_route(env),
+            duration,
+            labels: {
+              path:   parse_route(env),
               method: env['REQUEST_METHOD'].downcase,
-              env: Upfluence.env.to_s
-            },
-            duration
+              env:    Upfluence.env.to_s
+            }
           )
         end
 
@@ -75,8 +81,8 @@ module Upfluence
 
           path = Rack::Request.new(env).path
 
-          splitted_template = route.split(' ').last.split('/').select do |v|
-            v != ''
+          splitted_template = route.split(' ').last.split('/').rejext do |v|
+            v.eql?('')
           end.reverse
 
           path.split('/').reverse.map.with_index do |part, i|
