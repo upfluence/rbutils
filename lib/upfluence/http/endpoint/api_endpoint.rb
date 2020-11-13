@@ -1,4 +1,6 @@
 require 'sinatra'
+require 'active_record'
+require 'active_support/hash_with_indifferent_access'
 
 module Upfluence
   module HTTP
@@ -31,9 +33,9 @@ module Upfluence
             token = params[:access_token]
 
             unless token
-              pattern      = /^Bearer /
-              header       = request.env['HTTP_AUTHORIZATION']
-              token = header.gsub(pattern, '') if header && header.match(pattern)
+              pattern = /^Bearer /
+              header  = request.env['HTTP_AUTHORIZATION']
+              token   = header.gsub(pattern, '') if header&.match(pattern)
             end
 
             token
@@ -50,13 +52,17 @@ module Upfluence
               opts = args.first || {}
 
               result = if resource.is_a? Enumerable
-                         USerializer::ArraySerializer.new(resource, *args).to_json
+                         USerializer::ArraySerializer.new(
+                           resource, *args
+                         ).to_json
                        elsif opts[:serializer]
                          opts[:serializer].new(resource, *args).to_json
                        elsif resource.respond_to?(:serialize)
                          resource.serialize(*args).to_json
                        else
-                         USerializer.serializer_for(resource).new(resource, *args).to_json
+                         USerializer.serializer_for(resource).new(
+                           resource, *args
+                         ).to_json
                        end
             end
 
@@ -64,7 +70,9 @@ module Upfluence
           end
 
           def json_params
-            ActiveSupport::HashWithIndifferentAccess.new(JSON.parse(request_body))
+            ActiveSupport::HashWithIndifferentAccess.new(
+              JSON.parse(request_body)
+            )
           end
         end
 
