@@ -81,7 +81,7 @@ module Upfluence
 
           path = Rack::Request.new(env).path
 
-          splitted_template = route.split(' ').last.split('/').rejext do |v|
+          splitted_template = route.split(' ').last.split('/').reject do |v|
             v.eql?('')
           end.reverse
 
