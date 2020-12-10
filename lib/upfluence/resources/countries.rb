@@ -18,6 +18,6 @@ module Upfluence
       SY TW TJ TZ TH TL TG TO TT TN TR TM
       TC TV UG UA AE GB UY UZ VU VE VN VG
       VI EH YE ZM ZW CR
-    ]
+    ].freeze
   end
 end
