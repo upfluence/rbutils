@@ -1,5 +1,5 @@
 module Upfluence
-  module Ressources
+  module Resources
     COUNTRIES = %w[
       US FR GB DE CH AF AL DZ AS AD AO AI
       AG AR AM AW AU AT AZ BS BH BD BB BY
