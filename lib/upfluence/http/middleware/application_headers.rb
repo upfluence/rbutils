@@ -4,10 +4,7 @@ module Upfluence
       class ApplicationHeaders
         def initialize(app, handler)
           @app = app
-          @headers = {
-            "X-Upfluence-Unit-Name" => handler.getName,
-            "X-Upfluence-Version" => build_version(handler.getVersion)
-          }
+          @headers = handler ? build_headers(handler) : {}
         end
 
         def call(env)
@@ -17,14 +14,19 @@ module Upfluence
 
         private
 
-        def build_version(thrift_version)
-          if v = thrift_version.semantic_version
-            return "v#{v.major}.#{v.minor}.#{v.patch}"
-          end
+        def build_headers(handler)
+          {
+            'X-Upfluence-Unit-Name' => handler.getName,
+            'X-Upfluence-Version'   => build_version(handler.getVersion)
+          }
+        end
 
-          if v = thrift_version.git_version
-            return "v0.0.0-#{v.commit}"
-          end
+        def build_version(thrift_version)
+          v = thrift_version.semantic_version
+          return "v#{v.major}.#{v.minor}.#{v.patch}" if v
+
+          v = thrift_version.git_version
+          return "v0.0.0-#{v.commit}" if v
 
           'undefined'
         end

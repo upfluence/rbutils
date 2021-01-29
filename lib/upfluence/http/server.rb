@@ -36,6 +36,11 @@ module Upfluence
       def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
         opts = @options
+        base_handler = nil
+
+        if opts[:base_handler_klass]
+          base_handler = opts[:base_handler_klass].new(@options[:interfaces])
+        end
 
         @builder = Builder.new do
           use Middleware::Logger
@@ -54,12 +59,9 @@ module Upfluence
             run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
           end
 
-          if opts[:base_processor_klass] && opts[:base_handler_klass]
+          if opts[:base_processor_klass] && base_handler
             map '/base' do
-              run_thrift(
-                opts[:base_processor_klass],
-                opts[:base_handler_klass].new(@options[:interfaces])
-              )
+              run_thrift(opts[:base_processor_klass], base_handler)
             end
           end
 
