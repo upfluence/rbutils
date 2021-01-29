@@ -14,7 +14,6 @@ require 'upfluence/http/middleware/application_headers'
 require 'upfluence/http/middleware/handle_exception'
 require 'upfluence/http/middleware/prometheus'
 require 'upfluence/http/middleware/cors'
-require 'upfluence/handler/base'
 
 module Upfluence
   module HTTP
@@ -29,13 +28,14 @@ module Upfluence
         push_gateway_interval: 15, # sec
         app_name: ENV['APP_NAME'] || 'uhttp-rb-server',
         unit_name: ENV['UNIT_NAME'] || 'uhttp-rb-server-anonymous',
+        base_processor_klass: nil,
+        base_handler_klass: nil,
         debug: ENV['DEBUG']
-      }.freeze
+      }
 
       def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
         opts = @options
-        base_handler = Handler::Base.new(opts[:interfaces])
 
         @builder = Builder.new do
           use Middleware::Logger
@@ -54,13 +54,16 @@ module Upfluence
             run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
           end
 
-          map '/base' do
-            run_thrift Base::Base_service::BaseService::Processor, base_handler
+          if opts[:base_processor_klass] && opts[:base_handler_klass]
+            map '/base' do
+              run_thrift(
+                opts[:base_processor_klass],
+                opts[:base_handler_klass].new(@options[:interfaces])
+              )
+            end
           end
 
-          map '/debug' do
-            run Endpoint::Profiler.new
-          end if opts[:debug]
+          map('/debug') { run(Endpoint::Profiler.new) } if opts[:debug]
 
           instance_eval(&block)
         end

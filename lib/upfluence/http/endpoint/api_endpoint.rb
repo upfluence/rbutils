@@ -1,12 +1,15 @@
 require 'sinatra'
 require 'active_record'
 require 'active_support/hash_with_indifferent_access'
+require 'upfluence/http/endpoint/validation_error'
 
 module Upfluence
   module HTTP
     module Endpoint
       class BadRequest < StandardError; end
       class APIEndpoint < Sinatra::Base
+        VALIDATION_ERROR_KLASS = ValidationError
+
         disable :show_exceptions
         disable :logging
         disable :dump_errors
@@ -44,7 +47,7 @@ module Upfluence
           def respond_with(resource, *args)
             if resource.respond_to?(:errors) && resource.errors.any?
               status = 422
-              result = Base::Exceptions::ValidationError.from_model(
+              result = VALIDATION_ERROR_KLASS.from_model(
                 resource
               ).to_json
             else
