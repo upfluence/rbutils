@@ -2,6 +2,7 @@ require 'sinatra'
 require 'active_record'
 require 'active_support/hash_with_indifferent_access'
 require 'upfluence/http/endpoint/validation_error'
+require 'upfluence/mixin/strong_parameters'
 
 module Upfluence
   module HTTP
@@ -98,6 +99,16 @@ module Upfluence
 
       Sinatra::Base.error ActiveRecord::RecordInvalid do |e|
         [422, Base::Exceptions::ValidationError.from_model(e.record).to_json]
+      end
+
+      Sinatra::Base.error StrongParameters::ParameterMissing.error do |e|
+        [
+          400,
+          {
+            error: 'missing_parameter',
+            param: e.param
+          }.to_json
+        ]
       end
     end
   end
