@@ -101,7 +101,7 @@ module Upfluence
         [422, Base::Exceptions::ValidationError.from_model(e.record).to_json]
       end
 
-      Sinatra::Base.error StrongParameters::ParameterMissing.error do |e|
+      Sinatra::Base.error Upfluence::Mixin::StrongParameters::ParameterMissing do |e|
         [
           400,
           {
