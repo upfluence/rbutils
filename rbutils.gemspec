@@ -31,4 +31,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'prometheus-client', '~> 2.1'
   spec.add_runtime_dependency 'userializer'
   spec.add_runtime_dependency 'activerecord'
+  spec.add_runtime_dependency 'loofah'
 end
