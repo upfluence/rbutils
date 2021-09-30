@@ -44,9 +44,11 @@ module Upfluence
         end
 
         def record(env, code, duration)
+          path = parse_route(env, code)
+
           @request_total_count.increment(
             labels: {
-              path:   parse_route(env),
+              path:   path,
               method: env['REQUEST_METHOD'].downcase,
               status: code,
               env:    Upfluence.env.to_s
@@ -56,16 +58,16 @@ module Upfluence
           @request_histogram.observe(
             duration,
             labels: {
-              path:   parse_route(env),
+              path:   path,
               method: env['REQUEST_METHOD'].downcase,
               env:    Upfluence.env.to_s
             }
           )
         end
 
-        def parse_route(env)
+        def parse_route(env, code)
           parse_route_sinatra(env) || parse_route_rails(env) ||
-            parse_route_default(env)
+            parse_route_default(env, code)
         end
 
         def parse_route_rails(env)
@@ -90,7 +92,9 @@ module Upfluence
           end.reverse.join('/')
         end
 
-        def parse_route_default(env)
+        def parse_route_default(env, code)
+          return 'unexpected-route' if code.eql? 404
+
           Rack::Request.new(env).path.gsub(%r{/\d+(/|$)}, '/:id\\1')
         end
       end
