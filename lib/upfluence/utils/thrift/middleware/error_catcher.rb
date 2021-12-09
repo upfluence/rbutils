@@ -17,7 +17,7 @@ module Upfluence
           def method_missing(method, *args, &block)
             @app.send(method, *args, &block)
           rescue ::Thrift::Exception => e
-            if STANDARD_THRIFT_EXCEPTIONS.include? exc.class
+            if STANDARD_THRIFT_EXCEPTIONS.include? e.class
               @error_logger.notify(e, method, *args)
             end
 
