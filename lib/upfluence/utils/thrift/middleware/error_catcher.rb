@@ -3,6 +3,12 @@ module Upfluence
     module Thrift
       module Middleware
         class ErrorCatcher
+          STANDARD_THRIFT_EXCEPTIONS = [
+            ::Thrift::ApplicationException,
+            ::Thrift::TransportException,
+            ::Thrift::ProtocolException
+          ].freeze
+
           def initialize(app, error_logger)
             @app = app
             @error_logger = error_logger
@@ -11,6 +17,10 @@ module Upfluence
           def method_missing(method, *args, &block)
             @app.send(method, *args, &block)
           rescue ::Thrift::Exception => e
+            if STANDARD_THRIFT_EXCEPTIONS.include? exc.class
+              @error_logger.notify(e, method, *args)
+            end
+
             raise e
           rescue => e
             @error_logger.notify(e, method, *args)
