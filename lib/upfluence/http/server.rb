@@ -78,7 +78,7 @@ module Upfluence
 
         Thread.new { run_prometheus_exporter } if @options[:push_gateway_url]
 
-        @handler.run(@builder, @options) do |server|
+        @handler.run(@builder, **@options) do |server|
           server.threaded = @options[:threaded] if server.respond_to? :threaded=
 
           if server.respond_to?(:threadpool_size=) && @options[:threadpool_size]
