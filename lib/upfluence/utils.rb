@@ -1,3 +1,4 @@
+require 'upfluence/utils/interval_executor'
 require 'upfluence/utils/version'
 require 'upfluence/utils/thrift'
 require 'upfluence/utils/semaphore'
