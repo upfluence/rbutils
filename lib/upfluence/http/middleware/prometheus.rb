@@ -83,7 +83,7 @@ module Upfluence
 
           path = Rack::Request.new(env).path
 
-          splitted_template = route.split(' ').last.split('/').reject do |v|
+          splitted_template = route.split.last.split('/').reject do |v|
             v.eql?('')
           end.reverse
 
@@ -93,7 +93,7 @@ module Upfluence
         end
 
         def parse_route_default(env, code)
-          return 'unexpected-route' if code.eql? 404
+          return 'unexpected-route' if code.to_s.eql? '404'
 
           Rack::Request.new(env).path.gsub(%r{/\d+(/|$)}, '/:id\\1')
         end
