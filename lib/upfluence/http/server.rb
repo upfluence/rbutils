@@ -14,24 +14,26 @@ require 'upfluence/http/middleware/application_headers'
 require 'upfluence/http/middleware/handle_exception'
 require 'upfluence/http/middleware/prometheus'
 require 'upfluence/http/middleware/cors'
+require 'upfluence/http/middleware/request_stapler'
 
 module Upfluence
   module HTTP
     class Server
+      REQUEST_CONTEXT_KEY = :uhtt_request_context
       DEFAULT_OPTIONS = {
-        server: :puma,
-        Port: ENV['PORT'] || 8080,
-        Host: '0.0.0.0',
-        threaded: true,
-        interfaces: [],
-        push_gateway_url: ENV['PUSH_GATEWAY_URL'],
+        server:                :puma,
+        Port:                  ENV.fetch('PORT', 8080),
+        Host:                  '0.0.0.0',
+        threaded:              true,
+        interfaces:            [],
+        push_gateway_url:      ENV.fetch('PUSH_GATEWAY_URL', nil),
         push_gateway_interval: 15, # sec
-        app_name: ENV['APP_NAME'] || 'uhttp-rb-server',
-        unit_name: ENV['UNIT_NAME'] || 'uhttp-rb-server-anonymous',
-        base_processor_klass: nil,
-        base_handler_klass: nil,
-        debug: ENV['DEBUG']
-      }
+        app_name:              ENV.fetch('APP_NAME', 'uhttp-rb-server'),
+        unit_name:             ENV.fetch('UNIT_NAME','uhttp-rb-server-anonymous'),
+        base_processor_klass:  nil,
+        base_handler_klass:    nil,
+        debug:                 ENV.fetch('DEBUG', nil)
+      }.freeze
 
       def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
@@ -43,6 +45,7 @@ module Upfluence
         end
 
         @builder = Builder.new do
+          use Middleware::RequestStapler
           use Middleware::Logger
           use Middleware::Prometheus
           use Middleware::ApplicationHeaders, base_handler
@@ -87,6 +90,16 @@ module Upfluence
         end
       end
 
+      class << self
+        def request
+          Thread.current[REQUEST_CONTEXT_KEY]
+        end
+
+        def request=(req)
+          Thread.current[REQUEST_CONTEXT_KEY] = req
+        end
+      end
+
       private
 
       def run_prometheus_exporter
@@ -101,7 +114,7 @@ module Upfluence
 
           begin
             push.replace Prometheus::Client.registry
-          rescue => e
+          rescue StandardError => e
             Upfluence.error_logger.notify(e)
           end
         end
