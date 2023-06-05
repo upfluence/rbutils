@@ -20,6 +20,7 @@ module Upfluence
   module HTTP
     class Server
       REQUEST_CONTEXT_KEY = :uhtt_request_context
+      DEFAULT_MIDDLEWARES = []
       DEFAULT_OPTIONS = {
         server:                :puma,
         Port:                  ENV.fetch('PORT', 8080),
@@ -33,7 +34,7 @@ module Upfluence
         base_processor_klass:  nil,
         base_handler_klass:    nil,
         debug:                 ENV.fetch('DEBUG', nil)
-      }.freeze
+      }
 
       def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
@@ -57,6 +58,11 @@ module Upfluence
           use Rack::TempfileReaper
           use Rack::ETag
           use Middleware::CORS if Upfluence.env.development?
+
+          DEFAULT_MIDDLEWARES.each do |m|
+            m = [m] unless m.is_a?(Array)
+            use(*m)
+          end
 
           map '/healthcheck' do
             run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
