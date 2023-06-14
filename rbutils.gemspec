@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'upfluence-thrift'
   spec.add_runtime_dependency 'sinatra'
   spec.add_runtime_dependency 'redis'
-  spec.add_runtime_dependency 'sentry-raven'
+  spec.add_runtime_dependency 'sentry-ruby'
   spec.add_runtime_dependency 'sinatra-contrib'
   spec.add_runtime_dependency 'activesupport'
   spec.add_runtime_dependency 'puma'
