@@ -11,11 +11,11 @@ module Upfluence
 
         ::Sentry.init do |config|
           config.send_default_pii = true
-          config.dsn = ENV['SENTRY_DSN']
+          config.dsn = ENV.fetch('SENTRY_DSN', nil)
           config.environment = Upfluence.env
           config.excluded_exceptions = EXCLUDED_ERRORS
           config.logger = Upfluence.logger
-          config.release = "#{ENV['PROJECT_NAME']}-#{ENV['SEMVER_VERSION']}"
+          config.release = "#{ENV.fetch('PROJECT_NAME', nil)}-#{ENV.fetch('SEMVER_VERSION', nil)}"
           config.enable_tracing = false
           config.auto_session_tracking = false
         end
@@ -25,8 +25,12 @@ module Upfluence
         )
 
         ::Sentry.with_scope do |scope|
-          scope.add_event_processor do |event, _hint|
+          scope.add_event_processor do |event, hint|
             tags = @tag_extractors.map(&:extract).compact.reduce({}, &:merge)
+
+            exc = hint[:exception]
+
+            tags.merge!(exc.tags) if exc.respond_to? :tags
 
             tx_name = transaction_name(tags)
 
@@ -45,7 +49,12 @@ module Upfluence
       def notify(error, *args)
         ::Sentry.with_scope do |scope|
           context = args.reduce({}) do |acc, arg|
-            v = arg.is_a?(Hash) ? arg : { "arg_#{acc.length}" => arg.inspect }
+            v = if arg.is_a?(Hash)
+                  arg
+                else
+                  key = acc.empty? ? 'method' : "arg_#{acc.length}"
+                  { key => arg.inspect }
+                end
 
             acc.merge(v)
           end
