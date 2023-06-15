@@ -18,7 +18,7 @@ module Upfluence
         end
       end
 
-      def notify(error, _method, *_args)
+      def notify(error, *_args)
         Upfluence.logger.error(error.inspect)
       end
 
