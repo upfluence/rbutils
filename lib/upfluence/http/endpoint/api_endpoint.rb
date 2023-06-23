@@ -81,7 +81,12 @@ module Upfluence
         end
 
         def request_body
-          @request_body ||= request.body.read
+          @request_body ||= begin
+            data = request.body.read
+            request.body.rewind
+
+            data
+          end
         end
       end
 
