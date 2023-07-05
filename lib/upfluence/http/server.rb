@@ -2,6 +2,7 @@ require 'rack/handler'
 require 'rack/etag'
 require 'prometheus/client'
 require 'prometheus/client/push'
+require "prometheus/middleware/exporter"
 
 require 'upfluence/environment'
 require 'upfluence/error_logger'
@@ -29,6 +30,7 @@ module Upfluence
         interfaces:            [],
         push_gateway_url:      ENV.fetch('PUSH_GATEWAY_URL', nil),
         push_gateway_interval: 15, # sec
+        prometheus_endpoint:   ENV.fetch('PUSH_GATEWAY_URL', nil).eql?(nil),
         app_name:              ENV.fetch('APP_NAME', 'uhttp-rb-server'),
         unit_name:             ENV.fetch('UNIT_NAME','uhttp-rb-server-anonymous'),
         base_processor_klass:  nil,
@@ -49,6 +51,7 @@ module Upfluence
           use Middleware::RequestStapler
           use Middleware::Logger
           use Middleware::Prometheus
+          use Prometheus::Middleware::Exporter if opts[:prometheus_endpoint]
           use Middleware::ApplicationHeaders, base_handler
           use Middleware::HandleException
           use Upfluence.error_logger.middleware
