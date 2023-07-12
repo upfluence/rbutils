@@ -3,7 +3,12 @@ require 'sentry-ruby'
 module Upfluence
   module ErrorLogger
     class Sentry
-      EXCLUDED_ERRORS = (::Sentry::Configuration::IGNORE_DEFAULT + ['Identity::Thrift::Forbidden'])
+      EXCLUDED_ERRORS = (
+        ::Sentry::Configuration::IGNORE_DEFAULT + [
+          'Identity::Thrift::Forbidden',
+          'ActiveRecord::RecordNotFound'
+        ]
+      )
       MAX_TAG_SIZE = 8 * 1024
 
       def initialize
