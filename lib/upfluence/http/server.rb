@@ -35,6 +35,7 @@ module Upfluence
         unit_name:             ENV.fetch('UNIT_NAME','uhttp-rb-server-anonymous'),
         base_processor_klass:  nil,
         base_handler_klass:    nil,
+        max_threads:           ENV.fetch('HTTP_SERVER_MAX_THREADS', 5).to_i,
         debug:                 ENV.fetch('DEBUG', nil)
       }
 
@@ -93,8 +94,10 @@ module Upfluence
         @handler.run(@builder, **@options) do |server|
           server.threaded = @options[:threaded] if server.respond_to? :threaded=
 
-          if server.respond_to?(:threadpool_size=) && @options[:threadpool_size]
-            server.threadpool_size = @options[:threadpool_size]
+          # Thin does not recognize the max_thread argument, howerver it has a
+          # threadpool_size setter. Puma on the other hand recognize max_thread.
+          if server.respond_to?(:threadpool_size=) && @options[:max_threads]
+            server.threadpool_size = @options[:max_threads]
           end
         end
       end
