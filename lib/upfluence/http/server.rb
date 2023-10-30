@@ -20,7 +20,7 @@ require 'upfluence/http/middleware/request_stapler'
 module Upfluence
   module HTTP
     class Server
-      REQUEST_CONTEXT_KEY = :uhtt_request_context
+      REQUEST_CONTEXT_KEY = :uhttp_request_context
       DEFAULT_MIDDLEWARES = []
       DEFAULT_OPTIONS = {
         server:                :puma,
@@ -36,6 +36,7 @@ module Upfluence
         base_processor_klass:  nil,
         base_handler_klass:    nil,
         max_threads:           ENV.fetch('HTTP_SERVER_MAX_THREADS', 5).to_i,
+        middlewares:           [],
         debug:                 ENV.fetch('DEBUG', nil)
       }
 
@@ -63,7 +64,7 @@ module Upfluence
           use Rack::ETag
           use Middleware::CORS if Upfluence.env.development?
 
-          DEFAULT_MIDDLEWARES.each do |m|
+          (DEFAULT_MIDDLEWARES || opts[:middlewares]).each do |m|
             m = [m] unless m.is_a?(Array)
             use(*m)
           end
