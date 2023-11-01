@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'userializer'
   spec.add_runtime_dependency 'activerecord'
   spec.add_runtime_dependency 'loofah'
+  spec.add_runtime_dependency 'rack-timeout'
 end

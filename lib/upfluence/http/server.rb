@@ -1,11 +1,13 @@
 require 'rack/handler'
 require 'rack/etag'
+require 'rack/timeout/base'
 require 'prometheus/client'
 require 'prometheus/client/push'
 require "prometheus/middleware/exporter"
 
 require 'upfluence/environment'
 require 'upfluence/error_logger'
+require 'upfluence/logger'
 
 require 'upfluence/http/builder'
 require 'upfluence/http/endpoint/healthcheck'
@@ -16,6 +18,8 @@ require 'upfluence/http/middleware/handle_exception'
 require 'upfluence/http/middleware/prometheus'
 require 'upfluence/http/middleware/cors'
 require 'upfluence/http/middleware/request_stapler'
+
+Rack::Timeout::Logger.disable
 
 module Upfluence
   module HTTP
@@ -36,6 +40,7 @@ module Upfluence
         base_processor_klass:  nil,
         base_handler_klass:    nil,
         max_threads:           ENV.fetch('HTTP_SERVER_MAX_THREADS', 5).to_i,
+        request_timeout:       ENV['HTTP_SERVER_REQUEST_TIMEOUT']&.to_i,
         middlewares:           [],
         debug:                 ENV.fetch('DEBUG', nil)
       }
@@ -50,6 +55,10 @@ module Upfluence
         end
 
         @builder = Builder.new do
+          if opts[:request_timeout]
+            use Rack::Timeout, service_timeout: opts[:request_timeout]
+          end
+
           use Middleware::RequestStapler
           use Middleware::Logger
           use Middleware::Prometheus
@@ -64,7 +73,7 @@ module Upfluence
           use Rack::ETag
           use Middleware::CORS if Upfluence.env.development?
 
-          (DEFAULT_MIDDLEWARES || opts[:middlewares]).each do |m|
+          (DEFAULT_MIDDLEWARES + opts[:middlewares]).each do |m|
             m = [m] unless m.is_a?(Array)
             use(*m)
           end
