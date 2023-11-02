@@ -55,17 +55,19 @@ module Upfluence
         end
 
         @builder = Builder.new do
+          use Middleware::RequestStapler
+          use Middleware::Logger
+          use Middleware::Prometheus
+          use Middleware::ApplicationHeaders, base_handler
+          use Middleware::HandleException
+
           if opts[:request_timeout]
             use Rack::Timeout, service_timeout: opts[:request_timeout]
           end
 
-          use Middleware::RequestStapler
-          use Middleware::Logger
-          use Middleware::Prometheus
-          use Prometheus::Middleware::Exporter if opts[:prometheus_endpoint]
-          use Middleware::ApplicationHeaders, base_handler
-          use Middleware::HandleException
           use Upfluence.error_logger.middleware
+          use Prometheus::Middleware::Exporter if opts[:prometheus_endpoint]
+
           use Rack::ContentLength
           use Rack::Chunked
           use Rack::Lint if Upfluence.env.development?
