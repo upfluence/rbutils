@@ -1,4 +1,4 @@
-# Rbutils
+# Upfluence_Utils
 
 # Description
 
@@ -22,7 +22,7 @@ Upfluence-utils provides the tool to notify sentry when a ruby error is raised.
 
 It is based on the 'sentry-ruby' sdk, you can check the [documentation](https://docs.sentry.io/platforms/ruby/)..
 
-Upfluence-utils also already provides the [basic configuration](https://docs.sentry.io/platforms/ruby/configuration/options/?original_referrer=https%3A%2F%2Fwww.google.com%2F) [here](https://github.com/upfluence/rbutils/blob/fd9bb88960f7dbe04dc43180489207d2739cb0ff/lib/upfluence/error_logger/sentry.rb#L17) so it works like 'plug and play' and you just have to be aware of the environment variables.
+Upfluence-utils also already provides the [basic configuration](https://docs.sentry.io/platforms/ruby/configuration/options/?original_referrer=https%3A%2F%2Fwww.google.com%2F) [here](https://github.com/upfluence/upfluence_utils/blob/fd9bb88960f7dbe04dc43180489207d2739cb0ff/lib/upfluence/error_logger/sentry.rb#L17) so it works like 'plug and play' and you just have to be aware of the environment variables.
 
 ### Base ApiEndpoint
 

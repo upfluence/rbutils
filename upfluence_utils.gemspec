@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['dev@upfluence.com']
 
   spec.summary       = 'Upfluence common utils for Ruby projects'
-  spec.homepage      = 'https://github.com/upfluence/rbutils'
+  spec.homepage      = 'https://github.com/upfluence/upfluence_utils'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
