@@ -9,17 +9,19 @@ module Upfluence
         def call(env)
           @app.call(env)
         rescue => e
-          Upfluence.logger.error("Error: #{e.class}: #{e.message}")
-          e.backtrace.each do |b|
-            Upfluence.logger.error("\t#{b}")
-          end
+          notify(error)
 
           raise e
         end
       end
 
       def notify(error, *_args)
-        Upfluence.logger.error(error.inspect)
+        Upfluence.logger.error("Error: #{error.class}: #{error.message}")
+        Upfluence.logger.error("Inspect: #{error.inspect}")
+
+        error.backtrace.each do |b|
+          Upfluence.logger.error("\t#{b}")
+        end
       end
 
       def ignore_exception(*_kls); end
