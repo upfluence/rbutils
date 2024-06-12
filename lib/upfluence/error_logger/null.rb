@@ -19,7 +19,7 @@ module Upfluence
         Upfluence.logger.error("Error: #{error.class}: #{error.message}")
         Upfluence.logger.error("Inspect: #{error.inspect}")
 
-        error.backtrace.each do |b|
+        error.backtrace&.each do |b|
           Upfluence.logger.error("\t#{b}")
         end
       end
