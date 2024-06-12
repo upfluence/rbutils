@@ -41,10 +41,13 @@ module Upfluence
     end
 
     def initialize(level = (ENV['LOGGER_LEVEL'] || '').downcase, caller_depth = 0)
-      STDOUT.sync = true
-      @logdev = STDOUT
-      @level = logger_level(level)
-      @formatter = Formatter.new(caller_depth)
+      $stdout.sync = true
+
+      super(
+        $stdout,
+        level:     logger_level(level),
+        formatter: Formatter.new(caller_depth)
+      )
     end
   end
 
