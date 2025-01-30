@@ -4,10 +4,7 @@ module Upfluence
   module ErrorLogger
     class Sentry
       EXCLUDED_ERRORS = (
-        ::Sentry::Configuration::IGNORE_DEFAULT + [
-          'Identity::Thrift::Forbidden',
-          'ActiveRecord::RecordNotFound'
-        ]
+        ::Sentry::Configuration::IGNORE_DEFAULT + ['ActiveRecord::RecordNotFound']
       )
       MAX_TAG_SIZE = 8 * 1024
 
@@ -77,7 +74,7 @@ module Upfluence
       end
 
       def middleware
-        ::Sentry::Rack::CaptureExceptions
+        RackMiddleware
       end
 
       def ignore_exception(*klss)
@@ -90,6 +87,16 @@ module Upfluence
           else
             Upfluence.logger.warn "Unexcepted argument for ignore_exception #{kls}"
           end
+        end
+      end
+
+      class RackMiddleware < ::Sentry::Rack::CaptureExceptions
+        def capture_exception(exception, env)
+          if env.key? 'sinatra.error'
+            return if Sinatra::Base.errors.keys.any? { |klass| exception.is_a?(klass) }
+          end
+
+          super(exception, env)
         end
       end
 

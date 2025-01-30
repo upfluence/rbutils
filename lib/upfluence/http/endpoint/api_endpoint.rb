@@ -88,6 +88,12 @@ module Upfluence
             data
           end
         end
+
+        class << self
+          def error(*codes, &block)
+            Sinatra::Base.error(*codes, &block)
+          end
+        end
       end
 
       Sinatra::Base.error BadRequest do
