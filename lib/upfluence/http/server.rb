@@ -18,6 +18,7 @@ require 'upfluence/http/middleware/handle_exception'
 require 'upfluence/http/middleware/prometheus'
 require 'upfluence/http/middleware/cors'
 require 'upfluence/http/middleware/request_stapler'
+require 'upfluence/instrumentation'
 
 Rack::Timeout::Logger.disable
 
@@ -42,6 +43,11 @@ module Upfluence
         max_threads:           ENV.fetch('HTTP_SERVER_MAX_THREADS', 5).to_i,
         request_timeout:       ENV['HTTP_SERVER_REQUEST_TIMEOUT']&.to_i,
         middlewares:           [],
+        instrumentations:      [
+          Instrumentation::PumaInstrumenter.new,
+          Instrumentation::GCInstrumenter.new,
+          Instrumentation::ActiveRecordPoolInstrumenter.new
+        ],
         debug:                 ENV.fetch('DEBUG', nil)
       }
 
@@ -102,6 +108,8 @@ module Upfluence
         ENV['RACK_ENV'] = Upfluence.env.to_s
 
         Thread.new { run_prometheus_exporter } if @options[:push_gateway_url]
+
+        @options[:instrumentations].each(&:start)
 
         @handler.run(@builder, **@options) do |server|
           server.threaded = @options[:threaded] if server.respond_to? :threaded=
