@@ -34,4 +34,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'activerecord'
   spec.add_runtime_dependency 'loofah'
   spec.add_runtime_dependency 'rack-timeout'
+  spec.add_runtime_dependency 'mutex_m'
 end
