@@ -93,7 +93,9 @@ module Upfluence
       class RackMiddleware < ::Sentry::Rack::CaptureExceptions
         def capture_exception(exception, env)
           if env.key? 'sinatra.error'
-            return if Sinatra::Base.errors.keys.any? { |klass| exception.is_a?(klass) }
+            return if Sinatra::Base.errors.keys.any? do |klass|
+              klass.is_a?(Class) && !klass.eql?(Exception) && exception.is_a?(klass)
+            end
           end
 
           super(exception, env)
