@@ -1,4 +1,6 @@
 require 'sentry-ruby'
+require 'upfluence/environment'
+require 'upfluence/logger'
 
 module Upfluence
   module ErrorLogger
