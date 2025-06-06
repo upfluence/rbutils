@@ -26,7 +26,7 @@ module Upfluence
       end
 
       def formatted_caller
-        caller[4 + @extra].gsub!(/(^.+\/)?(.*):(.*):in `.*'/, '\\2:\\3')
+        caller[4 + @extra].gsub!(/(^.+\/)?(.*):(.*):in (`|').*'/, '\\2:\\3')
       end
     end
 
