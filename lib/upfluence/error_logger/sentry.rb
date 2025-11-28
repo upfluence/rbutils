@@ -6,8 +6,26 @@ module Upfluence
   module ErrorLogger
     class Sentry
       EXCLUDED_ERRORS = (
-        ::Sentry::Configuration::IGNORE_DEFAULT + ['ActiveRecord::RecordNotFound']
+        ::Sentry::Configuration::IGNORE_DEFAULT + [
+          'ActiveRecord::RecordNotFound',
+          'ActiveRecord::ConcurrentMigrationError'
+        ]
       )
+      WARNING_LEVEL_KLASS_NAMES = [
+        'Net::ReadTimeout',
+        'EOFError',
+        'ActiveRecord::QueryCanceled',
+        'Timeout::Error',
+        'Errno::ECONNRESET',
+        'OAuth2::ConnectionError'
+      ].freeze
+      WARNING_LEVEL_EXCEPTION_MESSAGES = [
+        'Connection reset by peer',
+        'Connection refused',
+        'connection refused',
+        'Failed to open TCP connection',
+        'Net::ReadTimeout'
+      ].freeze
       MAX_TAG_SIZE = 8 * 1024
 
       def initialize
@@ -18,7 +36,7 @@ module Upfluence
           config.dsn = ENV.fetch('SENTRY_DSN', nil)
           config.environment = Upfluence.env
           config.excluded_exceptions = EXCLUDED_ERRORS
-          config.logger = Upfluence.logger
+          config.sdk_logger = Upfluence.logger
           config.release = "#{ENV.fetch('PROJECT_NAME', nil)}-#{ENV.fetch('SEMVER_VERSION', nil)}"
           config.enable_tracing = false
           config.auto_session_tracking = false
@@ -64,6 +82,7 @@ module Upfluence
           end
 
           scope.set_extras(prepare_extra(context))
+          set_error_level(scope, error)
 
           ::Sentry.capture_exception(error)
         end
@@ -94,13 +113,13 @@ module Upfluence
 
       class RackMiddleware < ::Sentry::Rack::CaptureExceptions
         def capture_exception(exception, env)
-          if env.key? 'sinatra.error'
-            return if Sinatra::Base.errors.keys.any? do |klass|
-              klass.is_a?(Class) && !klass.eql?(Exception) && exception.is_a?(klass)
-            end
+          if env.key?('sinatra.error') && Sinatra::Base.errors.keys.any? do |klass|
+            klass.is_a?(Class) && !klass.eql?(Exception) && exception.is_a?(klass)
+          end
+            return
           end
 
-          super(exception, env)
+          super
         end
       end
 
@@ -127,6 +146,18 @@ module Upfluence
 
       def unit_type
         unit_name&.split('@')&.first
+      end
+
+      def set_error_level(scope, error)
+        if WARNING_LEVEL_KLASS_NAMES.include?(error.class.name)
+          scope.set_level :warning
+          return
+        end
+
+        lowercased_message = error.message.downcase
+        WARNING_LEVEL_EXCEPTION_MESSAGES.each do |msg|
+          scope.set_level :warning if lowercased_message.include?(msg)
+        end
       end
     end
   end
