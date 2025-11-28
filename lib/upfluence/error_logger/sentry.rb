@@ -156,7 +156,7 @@ module Upfluence
 
         lowercased_message = error.message.downcase
         WARNING_LEVEL_EXCEPTION_MESSAGES.each do |msg|
-          scope.set_level :warning if lowercased_message.include?(msg)
+          scope.set_level :warning if lowercased_message.include?(msg.downcase)
         end
       end
     end
