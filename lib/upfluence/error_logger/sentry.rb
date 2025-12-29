@@ -13,33 +13,33 @@ module Upfluence
       )
 
       class << self
-        def err_name_lambda(level, name)
-          lambda do |err|
-            level if err.class.name == name
+        def exception_name_lambda(level, name)
+          lambda do |exception|
+            level if exception.class.name.eql? name
           end
         end
 
-        def err_message_lambda(level, message)
+        def exception_message_lambda(level, message)
           downcased_message = message.downcase
 
-          lambda do |err|
-            level if err.message.downcase.include?(downcased_message)
+          lambda do |exception|
+            level if exception.message.downcase.include?(downcased_message)
           end
         end
       end
 
       DEFAULT_LEVEL_PROCS = [
-        err_name_lambda(:warning, 'Net::ReadTimeout'),
-        err_name_lambda(:warning, 'EOFError'),
-        err_name_lambda(:warning, 'ActiveRecord::QueryCanceled'),
-        err_name_lambda(:warning, 'Timeout::Error'),
-        err_name_lambda(:warning, 'Errno::ECONNRESET'),
-        err_name_lambda(:warning, 'OAuth2::ConnectionError'),
-        err_message_lambda(:warning, 'Connection reset by peer'),
-        err_message_lambda(:warning, 'Connection refused'),
-        err_message_lambda(:warning, 'connection refused'),
-        err_message_lambda(:warning, 'Failed to open TCP connection'),
-        err_message_lambda(:warning, 'Net::ReadTimeout')
+        exception_name_lambda(:warning, 'Net::ReadTimeout'),
+        exception_name_lambda(:warning, 'EOFError'),
+        exception_name_lambda(:warning, 'ActiveRecord::QueryCanceled'),
+        exception_name_lambda(:warning, 'Timeout::Error'),
+        exception_name_lambda(:warning, 'Errno::ECONNRESET'),
+        exception_name_lambda(:warning, 'OAuth2::ConnectionError'),
+        exception_message_lambda(:warning, 'Connection reset by peer'),
+        exception_message_lambda(:warning, 'Connection refused'),
+        exception_message_lambda(:warning, 'connection refused'),
+        exception_message_lambda(:warning, 'Failed to open TCP connection'),
+        exception_message_lambda(:warning, 'Net::ReadTimeout')
       ].freeze
       MAX_TAG_SIZE = 8 * 1024
 
@@ -75,7 +75,7 @@ module Upfluence
             event.transaction = tx_name if tx_name
             event.extra.merge!(prepare_extra(tags))
 
-            set_error_level(event, exc)
+            event.level = compute_exception_level(exc)
 
             event
           end
@@ -86,8 +86,8 @@ module Upfluence
         @tag_extractors << klass
       end
 
-      # proc must accept an error and return either a sentry level (:error, :warning, etc.)
-      # or nil if the error is not matched
+      # proc must accept an exception and return either a sentry level (:error, :warning, etc.)
+      # or nil if the exception is not matched
       def append_level_procs(proc)
         @level_procs << proc
       end
@@ -171,17 +171,15 @@ module Upfluence
         unit_name&.split('@')&.first
       end
 
-      def set_error_level(event, error)
-        return :error if error.nil?
+      def compute_exception_level(exception)
+        return :error if exception.nil?
 
         @level_procs.each do |lvp|
-          level = lvp.call(error)
+          level = lvp.call(exception)
 
           next if level.nil?
 
-          event.level = level
-
-          break
+          return level
         end
 
         :error
