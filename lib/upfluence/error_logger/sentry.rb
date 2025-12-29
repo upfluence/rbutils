@@ -172,6 +172,8 @@ module Upfluence
       end
 
       def set_error_level(event, error)
+        return :error if error.nil?
+
         @level_procs.each do |lvp|
           level = lvp.call(error)
 
@@ -181,6 +183,8 @@ module Upfluence
 
           break
         end
+
+        :error
       end
     end
   end
