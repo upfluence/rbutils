@@ -11,25 +11,41 @@ module Upfluence
           'ActiveRecord::ConcurrentMigrationError'
         ]
       )
-      WARNING_LEVEL_KLASS_NAMES = [
-        'Net::ReadTimeout',
-        'EOFError',
-        'ActiveRecord::QueryCanceled',
-        'Timeout::Error',
-        'Errno::ECONNRESET',
-        'OAuth2::ConnectionError'
-      ].freeze
-      WARNING_LEVEL_EXCEPTION_MESSAGES = [
-        'Connection reset by peer',
-        'Connection refused',
-        'connection refused',
-        'Failed to open TCP connection',
-        'Net::ReadTimeout'
+
+      class << self
+        def err_name_lambda(level, name)
+          lambda do |err|
+            level if err.class.name == name
+          end
+        end
+
+        def err_message_lambda(level, message)
+          downcased_message = message.downcase
+
+          lambda do |err|
+            level if err.message.downcase.include?(downcased_message)
+          end
+        end
+      end
+
+      DEFAULT_LEVEL_PROCS = [
+        err_name_lambda(:warning, 'Net::ReadTimeout'),
+        err_name_lambda(:warning, 'EOFError'),
+        err_name_lambda(:warning, 'ActiveRecord::QueryCanceled'),
+        err_name_lambda(:warning, 'Timeout::Error'),
+        err_name_lambda(:warning, 'Errno::ECONNRESET'),
+        err_name_lambda(:warning, 'OAuth2::ConnectionError'),
+        err_message_lambda(:warning, 'Connection reset by peer'),
+        err_message_lambda(:warning, 'Connection refused'),
+        err_message_lambda(:warning, 'connection refused'),
+        err_message_lambda(:warning, 'Failed to open TCP connection'),
+        err_message_lambda(:warning, 'Net::ReadTimeout')
       ].freeze
       MAX_TAG_SIZE = 8 * 1024
 
       def initialize
         @tag_extractors = []
+        @level_procs = [*DEFAULT_LEVEL_PROCS]
 
         ::Sentry.init do |config|
           config.send_default_pii = true
@@ -59,6 +75,8 @@ module Upfluence
             event.transaction = tx_name if tx_name
             event.extra.merge!(prepare_extra(tags))
 
+            set_error_level(event, exc)
+
             event
           end
         end
@@ -66,6 +84,12 @@ module Upfluence
 
       def append_tag_extractors(klass)
         @tag_extractors << klass
+      end
+
+      # proc must accept an error and return either a sentry level (:error, :warning, etc.)
+      # or nil if the error is not matched
+      def append_level_procs(proc)
+        @level_procs << proc
       end
 
       def notify(error, *args)
@@ -82,7 +106,6 @@ module Upfluence
           end
 
           scope.set_extras(prepare_extra(context))
-          set_error_level(scope, error)
 
           ::Sentry.capture_exception(error)
         end
@@ -148,15 +171,15 @@ module Upfluence
         unit_name&.split('@')&.first
       end
 
-      def set_error_level(scope, error)
-        if WARNING_LEVEL_KLASS_NAMES.include?(error.class.name)
-          scope.set_level :warning
-          return
-        end
+      def set_error_level(event, error)
+        @level_procs.each do |lvp|
+          level = lvp.call(error)
 
-        lowercased_message = error.message.downcase
-        WARNING_LEVEL_EXCEPTION_MESSAGES.each do |msg|
-          scope.set_level :warning if lowercased_message.include?(msg.downcase)
+          next if level.nil?
+
+          event.level = level
+
+          break
         end
       end
     end
