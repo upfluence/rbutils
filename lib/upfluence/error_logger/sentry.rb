@@ -6,19 +6,53 @@ module Upfluence
   module ErrorLogger
     class Sentry
       EXCLUDED_ERRORS = (
-        ::Sentry::Configuration::IGNORE_DEFAULT + ['ActiveRecord::RecordNotFound']
+        ::Sentry::Configuration::IGNORE_DEFAULT + [
+          'ActiveRecord::RecordNotFound',
+          'ActiveRecord::ConcurrentMigrationError'
+        ]
       )
+
+      class << self
+        def exception_name_lambda(level, name)
+          lambda do |exception|
+            level if exception.class.name.eql? name
+          end
+        end
+
+        def exception_message_lambda(level, message)
+          downcased_message = message.downcase
+
+          lambda do |exception|
+            level if exception.message.downcase.include?(downcased_message)
+          end
+        end
+      end
+
+      DEFAULT_LEVEL_PROCS = [
+        exception_name_lambda(:warning, 'Net::ReadTimeout'),
+        exception_name_lambda(:warning, 'EOFError'),
+        exception_name_lambda(:warning, 'ActiveRecord::QueryCanceled'),
+        exception_name_lambda(:warning, 'Timeout::Error'),
+        exception_name_lambda(:warning, 'Errno::ECONNRESET'),
+        exception_name_lambda(:warning, 'OAuth2::ConnectionError'),
+        exception_message_lambda(:warning, 'Connection reset by peer'),
+        exception_message_lambda(:warning, 'Connection refused'),
+        exception_message_lambda(:warning, 'connection refused'),
+        exception_message_lambda(:warning, 'Failed to open TCP connection'),
+        exception_message_lambda(:warning, 'Net::ReadTimeout')
+      ].freeze
       MAX_TAG_SIZE = 8 * 1024
 
       def initialize
         @tag_extractors = []
+        @level_procs = [*DEFAULT_LEVEL_PROCS]
 
         ::Sentry.init do |config|
           config.send_default_pii = true
           config.dsn = ENV.fetch('SENTRY_DSN', nil)
           config.environment = Upfluence.env
           config.excluded_exceptions = EXCLUDED_ERRORS
-          config.logger = Upfluence.logger
+          config.sdk_logger = Upfluence.logger
           config.release = "#{ENV.fetch('PROJECT_NAME', nil)}-#{ENV.fetch('SEMVER_VERSION', nil)}"
           config.enable_tracing = false
           config.auto_session_tracking = false
@@ -41,6 +75,8 @@ module Upfluence
             event.transaction = tx_name if tx_name
             event.extra.merge!(prepare_extra(tags))
 
+            event.level = compute_exception_level(exc)
+
             event
           end
         end
@@ -48,6 +84,12 @@ module Upfluence
 
       def append_tag_extractors(klass)
         @tag_extractors << klass
+      end
+
+      # proc must accept an exception and return either a sentry level (:error, :warning, etc.)
+      # or nil if the exception is not matched
+      def append_level_procs(proc)
+        @level_procs << proc
       end
 
       def notify(error, *args)
@@ -94,13 +136,13 @@ module Upfluence
 
       class RackMiddleware < ::Sentry::Rack::CaptureExceptions
         def capture_exception(exception, env)
-          if env.key? 'sinatra.error'
-            return if Sinatra::Base.errors.keys.any? do |klass|
-              klass.is_a?(Class) && !klass.eql?(Exception) && exception.is_a?(klass)
-            end
+          if env.key?('sinatra.error') && Sinatra::Base.errors.keys.any? do |klass|
+            klass.is_a?(Class) && !klass.eql?(Exception) && exception.is_a?(klass)
+          end
+            return
           end
 
-          super(exception, env)
+          super
         end
       end
 
@@ -127,6 +169,20 @@ module Upfluence
 
       def unit_type
         unit_name&.split('@')&.first
+      end
+
+      def compute_exception_level(exception)
+        return :error if exception.nil?
+
+        @level_procs.each do |lvp|
+          level = lvp.call(exception)
+
+          next if level.nil?
+
+          return level
+        end
+
+        :error
       end
     end
   end
