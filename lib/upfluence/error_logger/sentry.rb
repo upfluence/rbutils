@@ -96,7 +96,7 @@ module Upfluence
         ::Sentry.with_scope do |scope|
           context = args.reduce({}) do |acc, arg|
             v = if arg.is_a?(Hash)
-                  arg
+                  arg.transform_keys(&:to_s).transform_values(&:inspect)
                 else
                   key = acc.empty? ? 'method' : "arg_#{acc.length}"
                   { key => arg.inspect }
