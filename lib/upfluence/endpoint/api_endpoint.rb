@@ -1,4 +1,4 @@
-require 'sinatra'
+require 'sinatra/base'
 require 'upfluence/http/endpoint/api_endpoint'
 
 module Upfluence

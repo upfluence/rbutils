@@ -3,7 +3,7 @@ require 'rack/etag'
 require 'rack/timeout/base'
 require 'prometheus/client'
 require 'prometheus/client/push'
-require "prometheus/middleware/exporter"
+require 'prometheus/middleware/exporter'
 
 require 'upfluence/environment'
 require 'upfluence/error_logger'
@@ -48,60 +48,21 @@ module Upfluence
           Instrumentation::GCInstrumenter.new,
           Instrumentation::ActiveRecordPoolInstrumenter.new
         ],
+        admin_port:            ENV.fetch('ADMIN_PORT', nil),
         debug:                 ENV.fetch('DEBUG', nil)
       }
 
       def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
         opts = @options
-        base_handler = nil
 
         if opts[:base_handler_klass]
-          base_handler = opts[:base_handler_klass].new(@options[:interfaces])
+          @base_handler = opts[:base_handler_klass].new(opts[:interfaces])
         end
 
-        @builder = Builder.new do
-          use Middleware::RequestStapler
-          use Middleware::Logger
-          use Middleware::Prometheus
-          use Middleware::ApplicationHeaders, base_handler
-          use Middleware::HandleException
-
-          if opts[:request_timeout]
-            use Rack::Timeout, service_timeout: opts[:request_timeout]
-          end
-
-          use Upfluence.error_logger.middleware
-          use Prometheus::Middleware::Exporter if opts[:prometheus_endpoint]
-
-          use Rack::ContentLength
-          use Rack::Chunked
-          use Rack::Lint if Upfluence.env.development?
-          use Rack::TempfileReaper
-          use Rack::ETag
-          use Middleware::CORS if Upfluence.env.development?
-
-          (DEFAULT_MIDDLEWARES + opts[:middlewares]).each do |m|
-            m = [m] unless m.is_a?(Array)
-            use(*m)
-          end
-
-          map '/healthcheck' do
-            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
-          end
-
-          if opts[:base_processor_klass] && base_handler
-            map '/base' do
-              run_thrift(opts[:base_processor_klass], base_handler)
-            end
-          end
-
-          map('/debug') { run(Endpoint::Profiler.new) } if opts[:debug]
-
-          instance_eval(&block)
-        end
-
-        @handler = Rack::Handler.get(@options[:server])
+        @admin_builder = admin_builder(opts) if opts[:admin_port]
+        @production_builder = production_builder(opts, &block)
+        @handler = Rack::Handler.get(opts[:server])
       end
 
       def serve
@@ -111,15 +72,19 @@ module Upfluence
 
         @options[:instrumentations].each(&:start)
 
-        @handler.run(@builder, **@options) do |server|
-          server.threaded = @options[:threaded] if server.respond_to? :threaded=
+        if @admin_builder
+          admin_port = @options[:admin_port].to_i
 
-          # Thin does not recognize the max_thread argument, howerver it has a
-          # threadpool_size setter. Puma on the other hand recognize max_thread.
-          if server.respond_to?(:threadpool_size=) && @options[:max_threads]
-            server.threadpool_size = @options[:max_threads]
+          Thread.new do
+            run_builder(@admin_builder, Port: admin_port)
           end
+
+          Upfluence.logger.info(
+            "Admin server listening on #{@options[:Host]}:#{admin_port}"
+          )
         end
+
+        run_builder(@production_builder)
       end
 
       class << self
@@ -133,6 +98,90 @@ module Upfluence
       end
 
       private
+
+      def run_builder(builder, **overrides)
+        opts = @options.merge(overrides)
+
+        @handler.run(builder, **opts) do |server|
+          server.threaded = opts[:threaded] if server.respond_to? :threaded=
+
+          # Thin does not recognize the max_thread argument, howerver it has a
+          # threadpool_size setter. Puma on the other hand recognize max_thread.
+          if server.respond_to?(:threadpool_size=) && opts[:max_threads]
+            server.threadpool_size = opts[:max_threads]
+          end
+        end
+      end
+
+      def production_builder(opts, &block)
+        base_handler = @base_handler
+        has_admin = !opts[:admin_port].nil?
+        mount = method(:mount_admin_endpoints)
+
+        Builder.new do
+          use Middleware::RequestStapler
+          use Middleware::Logger
+          use Middleware::Prometheus
+          use Middleware::ApplicationHeaders, base_handler
+          use Middleware::HandleException
+
+          if opts[:request_timeout]
+            use Rack::Timeout, service_timeout: opts[:request_timeout]
+          end
+
+          use Upfluence.error_logger.middleware
+
+          use Rack::ContentLength
+          use Rack::Chunked
+          use Rack::Lint if Upfluence.env.development?
+          use Rack::TempfileReaper
+          use Rack::ETag
+          use Middleware::CORS if Upfluence.env.development?
+
+          (DEFAULT_MIDDLEWARES + opts[:middlewares]).each do |m|
+            m = [m] unless m.is_a?(Array)
+            use(*m)
+          end
+
+          mount.call(self, opts) unless has_admin
+
+          map '/healthcheck' do
+            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
+          end
+
+          instance_eval(&block)
+        end
+      end
+
+      def admin_builder(opts)
+        mount = method(:mount_admin_endpoints)
+
+        Builder.new do
+          use Rack::ContentLength
+
+          map '/healthcheck' do
+            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
+          end
+
+          mount.call(self, opts)
+        end
+      end
+
+      def mount_admin_endpoints(builder, opts)
+        base_handler = @base_handler
+
+        builder.instance_eval do
+          use Prometheus::Middleware::Exporter if opts[:prometheus_endpoint]
+
+          if opts[:base_processor_klass] && base_handler
+            map '/base' do
+              run_thrift(opts[:base_processor_klass], base_handler)
+            end
+          end
+
+          map('/debug') { run(Endpoint::Profiler.new) } if opts[:debug]
+        end
+      end
 
       def run_prometheus_exporter
         push = Prometheus::Client::Push.new(
