@@ -1,5 +1,5 @@
 require 'thread'
-require 'timeout'
+require 'upfluence/timeout'
 
 module Upfluence
   class Pool
@@ -39,7 +39,8 @@ module Upfluence
 
     def pop(options = {})
       timeout = options.fetch :timeout, @timeout
-      deadline = Time.now + timeout
+      effective = [timeout, Upfluence.context.timeout].compact.min
+      deadline = Time.now + effective
 
       @mutex.synchronize do
         loop do
@@ -49,7 +50,7 @@ module Upfluence
           return connection if connection
 
           to_wait = deadline - Time.now
-          raise Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
+          raise ::Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
           @resource.wait(@mutex, to_wait)
         end
       end
