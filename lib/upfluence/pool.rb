@@ -93,17 +93,24 @@ module Upfluence
     end
 
     def discard(obj)
+      @metrics.observe_discard
+
       @mutex.synchronize do
         remove_from_redeemed obj
+        @metrics.update_checkout(@redeemed.length)
         @resource.broadcast
       end
     end
 
     def push(obj)
+      @metrics.observe_put
+
       @mutex.synchronize do
         remove_from_redeemed obj
 
         @que.push obj
+        @metrics.update_idle(@que.length)
+        @metrics.update_checkout(@redeemed.length)
         @resource.broadcast
       end
     end
@@ -112,16 +119,31 @@ module Upfluence
       timeout = options.fetch :timeout, @timeout
       effective = [timeout, Upfluence.context.timeout].compact.min
       deadline = Time.now + effective
+      t0 = nil
+
+      @metrics.observe_get
 
       @mutex.synchronize do
         loop do
-          return redeem(@que.pop) unless @que.empty?
+          unless @que.empty?
+            result = redeem(@que.pop)
+            @metrics.update_idle(@que.length)
+            @metrics.observe_wait(Time.now - t0) if t0
+            return result
+          end
 
-          connection = redeem(try_create(options))
-          return connection if connection
+          connection = try_create(options)
+
+          if connection
+            result = redeem(connection)
+            @metrics.observe_wait(Time.now - t0) if t0
+            return result
+          end
 
           to_wait = deadline - Time.now
           raise ::Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
+
+          t0 ||= Time.now
           @resource.wait(@mutex, to_wait)
         end
       end
@@ -147,6 +169,7 @@ module Upfluence
 
     def redeem(obj)
       @redeemed << obj if obj
+      @metrics.update_checkout(@redeemed.length)
       obj
     end
 
