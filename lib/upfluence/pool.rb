@@ -1,4 +1,3 @@
-require 'thread'
 require 'upfluence/timeout'
 
 module Upfluence
@@ -18,11 +17,15 @@ module Upfluence
         @labels            = labels
         @get               = register(registry, :counter, :"#{prefix}_get_total", 'Total pool get calls', label_keys)
         @put               = register(registry, :counter, :"#{prefix}_put_total", 'Total pool put calls', label_keys)
-        @discard           = register(registry, :counter, :"#{prefix}_discard_total", 'Total pool discard calls', label_keys)
-        @get_wait          = register(registry, :counter, :"#{prefix}_get_wait_total", 'Pool gets that had to wait', label_keys)
-        @get_wait_duration = register(registry, :counter, :"#{prefix}_get_wait_millisecond_total", 'Total milliseconds waiting for pool get', label_keys)
+        @discard           = register(registry, :counter, :"#{prefix}_discard_total", 'Total pool discard calls',
+                                      label_keys)
+        @get_wait          = register(registry, :counter, :"#{prefix}_get_wait_total", 'Pool gets that had to wait',
+                                      label_keys)
+        @get_wait_duration = register(registry, :counter, :"#{prefix}_get_wait_millisecond_total",
+                                      'Total milliseconds waiting for pool get', label_keys)
         @idle              = register(registry, :gauge,   :"#{prefix}_idle", 'Idle resources in pool', label_keys)
-        @checkout          = register(registry, :gauge,   :"#{prefix}_checkout", 'Checked out resources in pool', label_keys)
+        @checkout          = register(registry, :gauge,   :"#{prefix}_checkout", 'Checked out resources in pool',
+                                      label_keys)
         @size              = register(registry, :gauge,   :"#{prefix}_size", 'Total pool size', label_keys)
       end
 
@@ -141,7 +144,7 @@ module Upfluence
           end
 
           to_wait = deadline - Time.now
-          raise ::Timeout::Error, "Waited #{timeout} sec" if to_wait <= 0
+          raise ::Timeout::Error.new("Waited #{timeout} sec") if to_wait <= 0
 
           t0 ||= Time.now
           @resource.wait(@mutex, to_wait)
@@ -160,11 +163,9 @@ module Upfluence
     private
 
     def remove_from_redeemed(obj)
-      unless @redeemed.map(&:object_id).include? obj.object_id
-        raise UnknownResource
-      end
+      raise UnknownResource unless @redeemed.map(&:object_id).include? obj.object_id
 
-      @redeemed.reject! { |e| e.object_id == obj.object_id }
+      @redeemed.reject! { |e| e.equal?(obj) }
     end
 
     def redeem(obj)
