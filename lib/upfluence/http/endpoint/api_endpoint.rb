@@ -1,4 +1,4 @@
-require 'sinatra'
+require 'sinatra/base'
 require 'active_record'
 require 'active_support/hash_with_indifferent_access'
 require 'upfluence/http/endpoint/validation_error'
