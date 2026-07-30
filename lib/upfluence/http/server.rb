@@ -119,7 +119,7 @@ module Upfluence
         mount = method(:mount_admin_endpoints)
 
         Builder.new do
-          use Middleware::RequestStapler
+          use Middleware::RequestStapler, timeout: opts[:request_timeout]
           use Middleware::Logger
           use Middleware::Prometheus
           use Middleware::ApplicationHeaders, base_handler

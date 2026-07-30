@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'rack/mock'
 require 'upfluence/http/server'
+require 'upfluence/context'
 
 RSpec.describe Upfluence::HTTP::Server do
   def build_server(**opts, &block)
@@ -105,6 +106,33 @@ RSpec.describe Upfluence::HTTP::Server do
 
       expect(resp.status).to eq(200)
       expect(resp.body).to eq("custom\n")
+    end
+  end
+
+  describe 'request_timeout' do
+    let(:captured_timeout) { [] }
+    let(:server) do
+      captured = captured_timeout
+
+      build_server(request_timeout: 30, admin_port: nil) do
+        run ->(_env) {
+          captured << Upfluence.context.timeout
+          [200, {}, ['ok']]
+        }
+      end
+    end
+    let(:builder) { server.instance_variable_get(:@production_builder) }
+
+    it 'sets the context timeout for the duration of the request' do
+      mock_request(builder, '/')
+
+      expect(captured_timeout.first).to be_within(0.1).of(30.0)
+    end
+
+    it 'clears the context timeout after the request' do
+      mock_request(builder, '/')
+
+      expect(Upfluence.context.timeout).to be_nil
     end
   end
 end

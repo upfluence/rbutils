@@ -1,3 +1,5 @@
+require 'upfluence/timeout'
+
 module Upfluence
   module Utils
     module Thrift
@@ -9,7 +11,7 @@ module Upfluence
           end
 
           def method_missing(method, *args, &block)
-            ::Timeout.timeout(@duration) { @app.send(method, *args, &block) }
+            Upfluence::Timeout.timeout(@duration) { @app.send(method, *args, &block) }
           rescue ::Timeout::Error
             raise ::Thrift::ApplicationException.new(
               ::Thrift::ApplicationException::INTERNAL_ERROR,
