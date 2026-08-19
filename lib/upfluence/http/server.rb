@@ -102,11 +102,18 @@ module Upfluence
         opts = @options.merge(overrides)
 
         @handler.run(builder, **opts) do |server|
+          configure_puma_instrumenter(server) if builder.equal?(@production_builder)
           server.threaded = opts[:threaded] if server.respond_to? :threaded=
 
           # Thin does not recognize the max_thread argument, howerver it has a
           # threadpool_size setter. Puma on the other hand recognize max_thread.
           server.threadpool_size = opts[:max_threads] if server.respond_to?(:threadpool_size=) && opts[:max_threads]
+        end
+      end
+
+      def configure_puma_instrumenter(server)
+        @options[:instrumentations].select { |instrumentation| instrumentation.respond_to?(:server=) }.each do |instrumentation|
+          instrumentation.server = server
         end
       end
 

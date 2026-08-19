@@ -6,6 +6,8 @@ module Upfluence
     class PumaInstrumenter < PeriodicInstrumenter
       KEYS = %i[backlog_thread running_thread busy_thread pool_capacity requests_count].freeze
 
+      attr_writer :server
+
       def prefix
         'puma'
       end
@@ -17,15 +19,17 @@ module Upfluence
       end
 
       def values
-        stats = Puma.stats_hash
+        return {} unless @server
+
+        stats = @server.stats
 
         {
-          requests_count: [{ value: stats[:requests_count] }],
-          backlog_thread: [{ value: stats[:backlog] }],
-          running_thread: [{ value: stats[:running] }],
-          busy_thread:    [{ value: stats[:busy_threads] }],
-          pool_capacity:  [{ value: stats[:max_threads] }]
-        }
+          requests_count: stats[:requests_count],
+          backlog_thread: stats[:backlog],
+          running_thread: stats[:running],
+          busy_thread:    stats[:busy_threads],
+          pool_capacity:  stats[:max_threads]
+        }.compact.transform_values { |value| [{ value: value }] }
       rescue NoMethodError
         {}
       end
