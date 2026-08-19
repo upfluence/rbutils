@@ -28,37 +28,36 @@ module Upfluence
       REQUEST_CONTEXT_KEY = :uhttp_request_context
       DEFAULT_MIDDLEWARES = []
       DEFAULT_OPTIONS = {
-        server:                :puma,
-        Port:                  ENV.fetch('PORT', 8080),
-        Host:                  '0.0.0.0',
-        threaded:              true,
-        interfaces:            [],
-        push_gateway_url:      ENV.fetch('PUSH_GATEWAY_URL', nil),
-        push_gateway_interval: 15, # sec
-        prometheus_endpoint:   ENV.fetch('PUSH_GATEWAY_URL', nil).eql?(nil),
-        app_name:              ENV.fetch('APP_NAME', 'uhttp-rb-server'),
-        unit_name:             ENV.fetch('UNIT_NAME','uhttp-rb-server-anonymous'),
-        base_processor_klass:  nil,
-        base_handler_klass:    nil,
-        max_threads:           ENV.fetch('HTTP_SERVER_MAX_THREADS', 5).to_i,
-        request_timeout:       ENV['HTTP_SERVER_REQUEST_TIMEOUT']&.to_i,
-        middlewares:           [],
-        instrumentations:      [
+        server:                          :puma,
+        Port:                            ENV.fetch('PORT', 8080),
+        Host:                            '0.0.0.0',
+        threaded:                        true,
+        interfaces:                      [],
+        push_gateway_url:                ENV.fetch('PUSH_GATEWAY_URL', nil),
+        push_gateway_interval:           15, # sec
+        prometheus_endpoint:             ENV.fetch('PUSH_GATEWAY_URL', nil).eql?(nil),
+        app_name:                        ENV.fetch('APP_NAME', 'uhttp-rb-server'),
+        unit_name:                       ENV.fetch('UNIT_NAME', 'uhttp-rb-server-anonymous'),
+        base_processor_klass:            nil,
+        base_handler_klass:              nil,
+        max_threads:                     ENV.fetch('HTTP_SERVER_MAX_THREADS', 5).to_i,
+        request_timeout:                 ENV['HTTP_SERVER_REQUEST_TIMEOUT']&.to_i,
+        enable_active_record_middleware: true,
+        middlewares:                     [],
+        instrumentations:                [
           Instrumentation::PumaInstrumenter.new,
           Instrumentation::GCInstrumenter.new,
           Instrumentation::ActiveRecordPoolInstrumenter.new
         ],
-        admin_port:            ENV.fetch('ADMIN_PORT', nil),
-        debug:                 ENV.fetch('DEBUG', nil)
-      }
+        admin_port:                      ENV.fetch('ADMIN_PORT', nil),
+        debug:                           ENV.fetch('DEBUG', nil)
+      }.freeze
 
       def initialize(options = {}, &block)
         @options = DEFAULT_OPTIONS.dup.merge(options)
         opts = @options
 
-        if opts[:base_handler_klass]
-          @base_handler = opts[:base_handler_klass].new(opts[:interfaces])
-        end
+        @base_handler = opts[:base_handler_klass].new(opts[:interfaces]) if opts[:base_handler_klass]
 
         @admin_builder = admin_builder(opts) if opts[:admin_port]
         @production_builder = production_builder(opts, &block)
@@ -107,9 +106,7 @@ module Upfluence
 
           # Thin does not recognize the max_thread argument, howerver it has a
           # threadpool_size setter. Puma on the other hand recognize max_thread.
-          if server.respond_to?(:threadpool_size=) && opts[:max_threads]
-            server.threadpool_size = opts[:max_threads]
-          end
+          server.threadpool_size = opts[:max_threads] if server.respond_to?(:threadpool_size=) && opts[:max_threads]
         end
       end
 
@@ -125,9 +122,15 @@ module Upfluence
           use Middleware::ApplicationHeaders, base_handler
           use Middleware::HandleException
 
-          if opts[:request_timeout]
-            use Rack::Timeout, service_timeout: opts[:request_timeout]
+          if opts[:enable_active_record_middleware] &&
+             defined?(ActiveRecord::Base) &&
+             ActiveRecord::Base.configurations.any?
+            require 'upfluence/http/middleware/active_record'
+
+            use Middleware::ActiveRecord
           end
+
+          use Rack::Timeout, service_timeout: opts[:request_timeout] if opts[:request_timeout]
 
           use Upfluence.error_logger.middleware
 
