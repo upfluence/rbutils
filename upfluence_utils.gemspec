@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'sinatra-contrib'
   spec.add_runtime_dependency 'activesupport'
   spec.add_runtime_dependency 'puma'
-  spec.add_runtime_dependency 'rack'
+  spec.add_runtime_dependency 'rack', '< 3.0'
   spec.add_runtime_dependency 'stackprof'
   spec.add_runtime_dependency 'prometheus-client', '~> 2.1'
   spec.add_runtime_dependency 'userializer'
@@ -35,4 +35,6 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'loofah'
   spec.add_runtime_dependency 'rack-timeout'
   spec.add_runtime_dependency 'mutex_m'
+  spec.add_runtime_dependency 'base64'
+  spec.add_runtime_dependency 'bigdecimal'
 end
