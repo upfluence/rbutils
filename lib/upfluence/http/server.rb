@@ -111,17 +111,12 @@ module Upfluence
       end
 
       def production_builder(opts, &block)
-        base_handler = @base_handler
         has_admin = !opts[:admin_port].nil?
-        mount = method(:mount_admin_endpoints)
+        builder = Builder.new
 
-        Builder.new do
-          use Middleware::RequestStapler, timeout: opts[:request_timeout]
-          use Middleware::Logger
-          use Middleware::Prometheus
-          use Middleware::ApplicationHeaders, base_handler
-          use Middleware::HandleException
+        mount_middlewares(builder, opts)
 
+        builder.instance_eval do
           if opts[:enable_active_record_middleware] &&
              defined?(ActiveRecord::Base) &&
              ActiveRecord::Base.configurations.any?
@@ -130,44 +125,25 @@ module Upfluence
             use Middleware::ActiveRecord
           end
 
-          use Rack::Timeout, service_timeout: opts[:request_timeout] if opts[:request_timeout]
-
-          use Upfluence.error_logger.middleware
-
-          use Rack::ContentLength
-          use Rack::Chunked
-          use Rack::Lint if Upfluence.env.development?
-          use Rack::TempfileReaper
-          use Rack::ETag
-          use Middleware::CORS if Upfluence.env.development?
-
           (DEFAULT_MIDDLEWARES + opts[:middlewares]).each do |m|
             m = [m] unless m.is_a?(Array)
             use(*m)
           end
-
-          mount.call(self, opts) unless has_admin
-
-          map '/healthcheck' do
-            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
-          end
-
-          instance_eval(&block)
         end
+
+        mount_admin_endpoints(builder, opts) unless has_admin
+        builder.instance_eval(&block)
+
+        builder
       end
 
       def admin_builder(opts)
-        mount = method(:mount_admin_endpoints)
+        builder = Builder.new
 
-        Builder.new do
-          use Rack::ContentLength
+        mount_middlewares(builder, opts)
+        mount_admin_endpoints(builder, opts)
 
-          map '/healthcheck' do
-            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
-          end
-
-          mount.call(self, opts)
-        end
+        builder
       end
 
       def mount_admin_endpoints(builder, opts)
@@ -183,6 +159,35 @@ module Upfluence
           end
 
           map('/debug') { run(Endpoint::Profiler.new) } if opts[:debug]
+        end
+      end
+
+      def mount_middlewares(builder, opts)
+        base_handler = @base_handler
+
+        builder.instance_eval do
+          use Middleware::RequestStapler, timeout: opts[:request_timeout]
+          use Middleware::Logger
+          use Middleware::Prometheus
+          use Middleware::ApplicationHeaders, base_handler
+          use Middleware::HandleException
+
+          use Rack::Timeout, service_timeout: opts[:request_timeout] if opts[:request_timeout]
+
+          use Upfluence.error_logger.middleware
+
+          use Rack::ContentLength
+          use Rack::Chunked
+          use Rack::Lint if Upfluence.env.development?
+          use Rack::TempfileReaper
+          use Rack::ETag
+          use Middleware::CORS if Upfluence.env.development?
+        end
+
+        builder.instance_eval do
+          map '/healthcheck' do
+            run(opts[:healthcheck_endpoint] || Endpoint::Healthcheck.new)
+          end
         end
       end
 
