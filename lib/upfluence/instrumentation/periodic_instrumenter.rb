@@ -30,7 +30,7 @@ module Upfluence
             rescue => e
               Upfluence.error_logger.notify(e)
             ensure
-              sleep @interval
+              sleep @interval unless @stop_thread
             end
           end
         end

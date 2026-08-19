@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'sentry-ruby', '< 6.0'
   spec.add_runtime_dependency 'sinatra-contrib'
   spec.add_runtime_dependency 'activesupport'
-  spec.add_runtime_dependency 'puma'
+  spec.add_runtime_dependency 'puma', '>= 7.0'
   spec.add_runtime_dependency 'rack', '< 3.0'
   spec.add_runtime_dependency 'stackprof'
   spec.add_runtime_dependency 'prometheus-client', '~> 2.1'
