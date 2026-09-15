@@ -1,6 +1,7 @@
 require 'sinatra/base'
 require 'active_record'
 require 'active_support/hash_with_indifferent_access'
+require 'rack/rewindable_input'
 require 'upfluence/http/endpoint/validation_error'
 require 'upfluence/mixin/strong_parameters'
 
@@ -16,6 +17,8 @@ module Upfluence
         disable :dump_errors
 
         enable :raise_errors
+
+        use Rack::RewindableInput::Middleware if defined?(Rack::RewindableInput::Middleware)
 
         before { content_type :json }
 
@@ -81,11 +84,9 @@ module Upfluence
         end
 
         def request_body
-          @request_body ||= begin
-            data = request.body.read
+          request.env['upfluence.request_body'] ||= begin
             request.body.rewind
-
-            data
+            request.body.read
           end
         end
 

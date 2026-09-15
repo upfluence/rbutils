@@ -16,8 +16,8 @@ module Upfluence
 
         def build_headers(handler)
           {
-            'X-Upfluence-Unit-Name' => handler.getName,
-            'X-Upfluence-Version'   => build_version(handler.getVersion)
+            'x-upfluence-unit-name' => handler.getName,
+            'x-upfluence-version'   => build_version(handler.getVersion)
           }
         end
 

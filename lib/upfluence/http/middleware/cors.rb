@@ -3,9 +3,9 @@ module Upfluence
     module Middleware
       class CORS
         HEADERS = {
-          'Access-Control-Allow-Origin' => '*',
-          'Access-Control-Allow-Headers' => 'Authorization, Content-Type, Scope, X-Upfluence-Plugin-Version',
-          'Access-Control-Allow-Methods' => 'GET, POST, PUT, OPTIONS, DELETE'
+          'access-control-allow-origin' => '*',
+          'access-control-allow-headers' => 'Authorization, Content-Type, Scope, X-Upfluence-Plugin-Version',
+          'access-control-allow-methods' => 'GET, POST, PUT, OPTIONS, DELETE'
         }.freeze
 
         def initialize(app, headers = nil)

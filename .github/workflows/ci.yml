@@ -11,8 +11,31 @@ jobs:
     uses: upfluence/actions/.github/workflows/lib-ruby-test.yml@master
     secrets: inherit
 
+  rack-compatibility:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        appraisal:
+          - rack-2
+          - rack-3
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+    - name: Install Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.4.1'
+        bundler-cache: true
+    - name: Install appraisal dependencies
+      run: bundle exec appraisal ${{ matrix.appraisal }} bundle install
+    - name: Run the test suite
+      run: bundle exec appraisal ${{ matrix.appraisal }} rspec
+
   release:
-    needs: test
+    needs:
+      - test
+      - rack-compatibility
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     steps:
