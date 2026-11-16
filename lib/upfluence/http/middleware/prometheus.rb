@@ -1,5 +1,6 @@
 require 'prometheus/client'
 require 'upfluence/environment'
+require 'upfluence/http/middleware/mount_point'
 
 module Upfluence
   module HTTP
@@ -66,7 +67,10 @@ module Upfluence
         end
 
         def parse_route(env, code)
-          parse_route_sinatra(env) || parse_route_rails(env) ||
+          mount = env[MountPoint::ENV_KEY]
+
+          parse_route_sinatra(env, mount) || parse_route_rails(env) ||
+            parse_route_mount(env, mount, code) ||
             parse_route_default(env, code)
         end
 
@@ -77,19 +81,47 @@ module Upfluence
           "#{params['controller']}##{params['action']}"
         end
 
-        def parse_route_sinatra(env)
+        def parse_route_sinatra(env, mount)
           route = env['sinatra.route']
           return nil if route.nil? || route.strip == ''
 
-          path = Rack::Request.new(env).path
+          "#{mount&.script_name}#{route.split(' ', 2).last}"
+        end
 
-          splitted_template = route.split.last.split('/').reject do |v|
-            v.eql?('')
-          end.reverse
+        # Used when the request never reached the router of the mounted app
+        # (e.g. throttled or failed in a middleware), so the route has to be
+        # resolved statically from the mount point.
+        def parse_route_mount(env, mount, code)
+          return nil if mount.nil? || code.to_s.eql?('404')
 
-          path.split('/').reverse.map.with_index do |part, i|
-            splitted_template[i] || part
-          end.reverse.join('/')
+          route = resolve_sinatra_route(
+            mount.endpoint,
+            env['REQUEST_METHOD'],
+            mount.path_info
+          )
+
+          route ||= '/*' unless ['', '/'].include?(mount.path_info)
+
+          "#{mount.script_name}#{route}"
+        end
+
+        def resolve_sinatra_route(endpoint, verb, path)
+          return nil unless defined?(::Sinatra::Base)
+
+          klass = endpoint.respond_to?(:settings) ? endpoint.settings : endpoint
+          path = '/' if path.empty?
+
+          while klass.is_a?(Class) && klass <= ::Sinatra::Base
+            (klass.routes[verb] || []).each do |pattern, _conditions, _block|
+              return pattern.to_s if pattern.params(path)
+            end
+
+            klass = klass.superclass
+          end
+
+          nil
+        rescue StandardError
+          nil
         end
 
         def parse_route_default(env, code)
