@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'rack', '>= 2.2', '< 4'
   spec.add_runtime_dependency 'rackup', '>= 1.0', '< 3'
   spec.add_runtime_dependency 'stackprof'
-  spec.add_runtime_dependency 'prometheus-client', '~> 2.1'
+  spec.add_runtime_dependency 'prometheus-client', '>= 4.1', '< 6'
   spec.add_runtime_dependency 'userializer'
   spec.add_runtime_dependency 'activerecord'
   spec.add_runtime_dependency 'loofah'

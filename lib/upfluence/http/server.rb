@@ -262,9 +262,9 @@ module Upfluence
 
       def run_prometheus_exporter
         push = Prometheus::Client::Push.new(
-          @options[:app_name],
-          @options[:unit_name],
-          @options[:push_gateway_url]
+          job:          @options[:app_name],
+          grouping_key: { instance: @options[:unit_name] },
+          gateway:      @options[:push_gateway_url]
         )
 
         loop do
