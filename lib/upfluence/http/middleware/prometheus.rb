@@ -1,5 +1,6 @@
 require 'prometheus/client'
 require 'upfluence/environment'
+require 'upfluence/http/route_resolver'
 
 module Upfluence
   module HTTP
@@ -44,7 +45,7 @@ module Upfluence
         end
 
         def record(env, code, duration)
-          path = parse_route(env, code)
+          path = RouteResolver.resolve(env, code)
 
           @request_total_count.increment(
             labels: {
@@ -63,39 +64,6 @@ module Upfluence
               env:    Upfluence.env.to_s
             }
           )
-        end
-
-        def parse_route(env, code)
-          parse_route_sinatra(env) || parse_route_rails(env) ||
-            parse_route_default(env, code)
-        end
-
-        def parse_route_rails(env)
-          params = env['action_dispatch.request.parameters']
-          return nil if params.nil?
-
-          "#{params['controller']}##{params['action']}"
-        end
-
-        def parse_route_sinatra(env)
-          route = env['sinatra.route']
-          return nil if route.nil? || route.strip == ''
-
-          path = Rack::Request.new(env).path
-
-          splitted_template = route.split.last.split('/').reject do |v|
-            v.eql?('')
-          end.reverse
-
-          path.split('/').reverse.map.with_index do |part, i|
-            splitted_template[i] || part
-          end.reverse.join('/')
-        end
-
-        def parse_route_default(env, code)
-          return 'unexpected-route' if code.to_s.eql? '404'
-
-          Rack::Request.new(env).path.gsub(%r{/\d+(/|$)}, '/:id\\1')
         end
       end
     end
