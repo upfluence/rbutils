@@ -49,6 +49,33 @@ Provide some utils for http requests, such as:
 - Prometheus logger
 - Base Exceptions
 
+### Stats
+
+A Ruby port of [upfluence/stats](https://github.com/upfluence/stats): metrics
+are created from scopes, which carry a namespace and a set of tags inherited by
+their children.
+
+```ruby
+scope = Upfluence::Stats.root_scope # backed by Prometheus::Client.registry
+
+db    = scope.scope('database', service: 'user-api')
+redis = db.scope('redis', cluster: 'cache-01')
+
+redis.counter('queries_total').inc # database_redis_queries_total{service,cluster}
+redis.counter_vector('errors_total', %w[kind]).with_labels(kind: 'timeout').add(2)
+scope.gauge('active_connections').update(42)
+scope.histogram('latency_seconds', buckets: [0.01, 0.1, 1]).record(0.12)
+
+Upfluence::Stats::Timer.new(scope, 'op').time { work } # op_seconds
+Upfluence::Stats::Instrument.new(scope, 'job').exec { work }
+# job_started_total, job_total{status}, job_duration_seconds
+```
+
+Use `Upfluence::Stats::RootScope.new(collector)` to build a root scope on a
+custom collector (`Collector::Prometheus.new(registry)` or
+`Collector::Static.new` for specs), and `Upfluence::Stats::NOOP_SCOPE` to
+disable metrics.
+
 ### Mixins
 
 Based on the concept of [mixins](https://en.wikipedia.org/wiki/Mixin#:~:text=at%20the%20time.-,Definition,mixed%20in%20with%20other%20classes.), these classes provide some good tools, like:
