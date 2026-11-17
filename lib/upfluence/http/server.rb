@@ -1,4 +1,3 @@
-require 'rack/handler'
 require 'rack/etag'
 require 'rack/timeout/base'
 require 'prometheus/client'
@@ -19,6 +18,12 @@ require 'upfluence/http/middleware/prometheus'
 require 'upfluence/http/middleware/cors'
 require 'upfluence/http/middleware/request_stapler'
 require 'upfluence/instrumentation'
+
+begin
+  require 'rackup/handler'
+rescue LoadError
+  require 'rack/handler'
+end
 
 Rack::Timeout::Logger.disable
 
@@ -62,7 +67,8 @@ module Upfluence
 
         @admin_builder = admin_builder(opts) if opts[:admin_port]
         @production_builder = production_builder(opts, &block)
-        @handler = Rack::Handler.get(opts[:server])
+        handler = defined?(Rackup::Handler) ? Rackup::Handler : Rack::Handler
+        @handler = handler.get(opts[:server])
         @stoppables = []
       end
 
@@ -241,7 +247,6 @@ module Upfluence
           use Upfluence.error_logger.middleware
 
           use Rack::ContentLength
-          use Rack::Chunked
           use Rack::Lint if Upfluence.env.development?
           use Rack::TempfileReaper
           use Rack::ETag
@@ -257,9 +262,9 @@ module Upfluence
 
       def run_prometheus_exporter
         push = Prometheus::Client::Push.new(
-          @options[:app_name],
-          @options[:unit_name],
-          @options[:push_gateway_url]
+          job:          @options[:app_name],
+          grouping_key: { instance: @options[:unit_name] },
+          gateway:      @options[:push_gateway_url]
         )
 
         loop do

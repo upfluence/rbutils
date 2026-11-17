@@ -11,7 +11,6 @@ module Upfluence
         def call(env)
           began_at = Time.now
           status, header, body = @app.call(env)
-          header = Rack::Utils::HeaderHash.new(header)
           body = Rack::BodyProxy.new(body) do
             log(env, status, header, began_at)
           end

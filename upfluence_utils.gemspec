@@ -18,18 +18,20 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.7.0'
 
   spec.add_development_dependency "bundler", ">= 2.2"
+  spec.add_development_dependency "appraisal", "~> 2.5"
   spec.add_development_dependency "rake", ">= 13.0.0"
   spec.add_development_dependency "rspec", ">= 3.10"
   spec.add_runtime_dependency 'upfluence-thrift'
-  spec.add_runtime_dependency 'sinatra'
+  spec.add_runtime_dependency 'sinatra', '>= 2.1', '< 5'
   spec.add_runtime_dependency 'redis'
   spec.add_runtime_dependency 'sentry-ruby', '< 6.0'
-  spec.add_runtime_dependency 'sinatra-contrib'
+  spec.add_runtime_dependency 'sinatra-contrib', '>= 2.1', '< 5'
   spec.add_runtime_dependency 'activesupport'
   spec.add_runtime_dependency 'puma', '>= 7.0'
-  spec.add_runtime_dependency 'rack', '< 3.0'
+  spec.add_runtime_dependency 'rack', '>= 2.2', '< 4'
+  spec.add_runtime_dependency 'rackup', '>= 1.0', '< 3'
   spec.add_runtime_dependency 'stackprof'
-  spec.add_runtime_dependency 'prometheus-client', '~> 2.1'
+  spec.add_runtime_dependency 'prometheus-client', '>= 4.1', '< 6'
   spec.add_runtime_dependency 'userializer'
   spec.add_runtime_dependency 'activerecord'
   spec.add_runtime_dependency 'loofah'

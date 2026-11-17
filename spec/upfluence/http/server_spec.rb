@@ -16,7 +16,7 @@ RSpec.describe Upfluence::HTTP::Server do
   end
 
   def mock_request(builder, path, method: :get)
-    Rack::MockRequest.new(builder).send(method, path)
+    Rack::MockRequest.new(Rack::Lint.new(builder)).send(method, path)
   end
 
   describe 'without admin_port' do
