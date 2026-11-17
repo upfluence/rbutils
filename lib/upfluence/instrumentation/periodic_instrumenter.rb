@@ -1,18 +1,17 @@
+require 'upfluence/stats'
+
 module Upfluence
   module Instrumentation
     class PeriodicInstrumenter
-      def initialize(interval: 30, registry: ::Prometheus::Client.registry)
-        @interval = interval
-        @gauges = metrics.reduce({}) do |acc, (metric, values)|
-          metric_name = [prefix, metric].compact.join("_").to_sym
+      def initialize(interval: 30, scope: Upfluence::Stats.root_scope)
+        scope = scope.scope(prefix.to_s)
 
-          acc.merge(
-            metric => registry.get(metric_name) || registry.gauge(
-              metric_name,
-              docstring: values[:docstring] || '',
-              labels:    values[:labels] || []
-            )
-          )
+        @interval = interval
+        @gauges = metrics.to_h do |metric, values|
+          [
+            metric,
+            scope.gauge_vector(metric, values[:labels] || [], docstring: values[:docstring])
+          ]
         end
 
         @stop_thread = false
@@ -22,16 +21,20 @@ module Upfluence
         @thread ||= Thread.new do
           until @stop_thread
             begin
-              values.each do |(metric, vs)|
-                vs.each do |v|
-                  @gauges[metric].set(v[:value], labels: v[:labels] || {})
-                end
-              end
+              collect
             rescue => e
               Upfluence.error_logger.notify(e)
             ensure
               sleep @interval unless @stop_thread
             end
+          end
+        end
+      end
+
+      def collect
+        values.each do |(metric, vs)|
+          vs.each do |v|
+            @gauges[metric].with_labels(**(v[:labels] || {})).update(v[:value])
           end
         end
       end

@@ -1,30 +1,26 @@
-require 'prometheus/client'
 require 'upfluence/environment'
 require 'upfluence/http/route_resolver'
+require 'upfluence/stats'
 
 module Upfluence
   module HTTP
     module Middleware
       class Prometheus
-        LABELS = %i[path method env].freeze
+        LABELS = %i[path method].freeze
 
-        def initialize(app, registry = ::Prometheus::Client.registry)
-          @registry = registry
+        def initialize(app, scope = Upfluence::Stats.root_scope)
+          scope = scope.scope('uhttp_handler', env: Upfluence.env.to_s)
 
-          @request_total_count = @registry.get(
-            :uhttp_handler_requests_total
-          ) || @registry.counter(
-            :uhttp_handler_requests_total,
-            docstring: 'Histogram of processed items',
-            labels:    LABELS + %i[status]
+          @request_total_count = scope.counter_vector(
+            'requests_total',
+            LABELS + %i[status],
+            docstring: 'Histogram of processed items'
           )
 
-          @request_histogram = @registry.get(
-            :uhttp_handler_requests_duration_second
-          ) || @registry.histogram(
-            :uhttp_handler_requests_duration_second,
-            docstring: 'Histogram of processing time',
-            labels:    LABELS
+          @request_histogram = scope.histogram_vector(
+            'requests_duration_second',
+            LABELS,
+            docstring: 'Histogram of processing time'
           )
 
           @app = app
@@ -46,24 +42,10 @@ module Upfluence
 
         def record(env, code, duration)
           path = RouteResolver.resolve(env, code)
+          method = env['REQUEST_METHOD'].downcase
 
-          @request_total_count.increment(
-            labels: {
-              path:   path,
-              method: env['REQUEST_METHOD'].downcase,
-              status: code,
-              env:    Upfluence.env.to_s
-            }
-          )
-
-          @request_histogram.observe(
-            duration,
-            labels: {
-              path:   path,
-              method: env['REQUEST_METHOD'].downcase,
-              env:    Upfluence.env.to_s
-            }
-          )
+          @request_total_count.with_labels(path: path, method: method, status: code).inc
+          @request_histogram.with_labels(path: path, method: method).record(duration)
         end
       end
     end

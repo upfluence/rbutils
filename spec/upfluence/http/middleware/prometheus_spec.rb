@@ -4,7 +4,8 @@ require 'upfluence/http/middleware/prometheus'
 
 RSpec.describe Upfluence::HTTP::Middleware::Prometheus do
   let(:registry) { Prometheus::Client::Registry.new }
-  let(:app) { described_class.new(->(_env) { [201, {}, ['ok']] }, registry) }
+  let(:scope) { Upfluence::Stats::RootScope.new(Upfluence::Stats::Collector::Prometheus.new(registry)) }
+  let(:app) { described_class.new(->(_env) { [201, {}, ['ok']] }, scope) }
   let(:labels) { { path: '/users/:id', method: 'post', env: Upfluence.env.to_s } }
 
   before { Rack::MockRequest.new(app).post('/users/42') }

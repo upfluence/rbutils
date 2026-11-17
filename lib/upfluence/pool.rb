@@ -1,3 +1,4 @@
+require 'upfluence/stats'
 require 'upfluence/timeout'
 
 module Upfluence
@@ -5,65 +6,66 @@ module Upfluence
     class UnknownResource < RuntimeError; end
     class NoInstanciationBlock < RuntimeError; end
 
-    class PrometheusMetrics
-      def self.standardized_metrics(n)
-        require 'prometheus/client'
-        new(Prometheus::Client.registry, 'upfluence_iopool_pool', { pool: n })
+    class Metrics
+      def self.standardized_metrics(n, scope: Upfluence::Stats.root_scope)
+        new(scope.scope('upfluence_iopool_pool', pool: n))
       end
 
-      def initialize(registry, prefix, labels)
-        label_keys = labels.keys
-
-        @labels            = labels
-        @get               = register(registry, :counter, :"#{prefix}_get_total", 'Total pool get calls', label_keys)
-        @put               = register(registry, :counter, :"#{prefix}_put_total", 'Total pool put calls', label_keys)
-        @discard           = register(registry, :counter, :"#{prefix}_discard_total", 'Total pool discard calls',
-                                      label_keys)
-        @get_wait          = register(registry, :counter, :"#{prefix}_get_wait_total", 'Pool gets that had to wait',
-                                      label_keys)
-        @get_wait_duration = register(registry, :counter, :"#{prefix}_get_wait_millisecond_total",
-                                      'Total milliseconds waiting for pool get', label_keys)
-        @idle              = register(registry, :gauge,   :"#{prefix}_idle", 'Idle resources in pool', label_keys)
-        @checkout          = register(registry, :gauge,   :"#{prefix}_checkout", 'Checked out resources in pool',
-                                      label_keys)
-        @size              = register(registry, :gauge,   :"#{prefix}_size", 'Total pool size', label_keys)
+      def initialize(scope)
+        @get               = scope.counter('get_total', docstring: 'Total pool get calls')
+        @put               = scope.counter('put_total', docstring: 'Total pool put calls')
+        @discard           = scope.counter('discard_total', docstring: 'Total pool discard calls')
+        @get_wait          = scope.counter('get_wait_total', docstring: 'Pool gets that had to wait')
+        @get_wait_duration = scope.counter(
+          'get_wait_millisecond_total', docstring: 'Total milliseconds waiting for pool get'
+        )
+        @idle              = scope.gauge('idle', docstring: 'Idle resources in pool')
+        @checkout          = scope.gauge('checkout', docstring: 'Checked out resources in pool')
+        @size              = scope.gauge('size', docstring: 'Total pool size')
       end
 
       def observe_get
-        @get.increment(labels: @labels)
+        @get.inc
       end
 
       def observe_put
-        @put.increment(labels: @labels)
+        @put.inc
       end
 
       def observe_discard
-        @discard.increment(labels: @labels)
+        @discard.inc
       end
 
       def observe_wait(seconds)
-        @get_wait.increment(labels: @labels)
-        @get_wait_duration.increment(by: (seconds * 1000).to_i, labels: @labels)
+        @get_wait.inc
+        @get_wait_duration.add((seconds * 1000).to_i)
       end
 
       def update_idle(count)
-        @idle.set(count, labels: @labels)
+        @idle.update(count)
       end
 
       def update_checkout(count)
-        @checkout.set(count, labels: @labels)
+        @checkout.update(count)
       end
 
       def set_size(count)
-        @size.set(count, labels: @labels)
+        @size.update(count)
+      end
+    end
+
+    # Deprecated: use Metrics with a Upfluence::Stats scope instead.
+    class PrometheusMetrics < Metrics
+      def self.standardized_metrics(n)
+        Metrics.standardized_metrics(n)
       end
 
-      private
-
-      def register(registry, type, name, docstring, label_keys)
-        registry.public_send(type, name, docstring: docstring, labels: label_keys)
-      rescue Prometheus::Client::Registry::AlreadyRegisteredError
-        registry.get(name)
+      def initialize(registry, prefix, labels)
+        super(
+          Upfluence::Stats::RootScope.new(
+            Upfluence::Stats::Collector::Prometheus.new(registry)
+          ).scope(prefix, **labels)
+        )
       end
     end
 
