@@ -2,6 +2,7 @@ require 'sinatra/base'
 require 'active_record'
 require 'active_support/hash_with_indifferent_access'
 require 'rack/rewindable_input'
+require 'upfluence/environment'
 require 'upfluence/http/endpoint/validation_error'
 require 'upfluence/mixin/strong_parameters'
 
@@ -11,6 +12,8 @@ module Upfluence
       class BadRequest < StandardError; end
       class APIEndpoint < Sinatra::Base
         VALIDATION_ERROR_KLASS = ValidationError
+
+        set :environment, Upfluence.env.to_sym
 
         disable :show_exceptions
         disable :logging
