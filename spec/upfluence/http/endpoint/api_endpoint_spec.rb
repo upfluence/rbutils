@@ -22,4 +22,8 @@ RSpec.describe Upfluence::HTTP::Endpoint::APIEndpoint do
     expect(response.status).to eq(200)
     expect(JSON.parse(response.body)).to eq('foo' => 'bar')
   end
+
+  it 'runs in the Upfluence environment' do
+    expect(described_class.environment).to eq(Upfluence.env.to_sym)
+  end
 end
